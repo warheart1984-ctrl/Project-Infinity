@@ -124,6 +124,10 @@ These are not hidden bugs. They are explicit limits in the current design.
     any remaining overrides
   - `mobile/package-lock.json` now keeps only the still-required governed
     overrides for `@xmldom/xmldom`, `postcss`, and `uuid`
+- Remote GitHub Actions proof is currently blocked by platform state, not gate logic.
+  - the throwaway break branch and the good branch both triggered the workflow
+  - GitHub returned `The job was not started because your account is locked due to a billing issue`
+  - local verification is complete, but remote step-by-step gate execution cannot be proven until that GitHub account issue is cleared
 - The detachment governance and ingress identity seams are now repaired.
   - the detachment guard is exposed through governed read and clear API routes
   - message, stream, and compat ingress lanes now preserve distinct bridge route and surface attribution
@@ -175,6 +179,9 @@ These are not hidden bugs. They are explicit limits in the current design.
   isolated project environment
 - Link sanity for the updated Super Nova truth surfaces: `SUPER_NOVA_DOC_LINKS_OK`
 - The dependency hardening and detachment-governance pass reran the full backend suite, the full frontend test suite, the frontend production build, mobile typecheck, and the frontend/mobile dependency audits.
+- Remote branch-triggered Actions runs were created for both the ship branch and
+  the deliberate break branch, but neither job started because GitHub reported
+  an account billing lock before step execution.
 
 ## 6. Recommended Next Documentation Moves
 

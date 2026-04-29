@@ -19,11 +19,25 @@ jobs:
 
       - name: Install frontend deps (clean)
         working-directory: frontend
-        run: npm ci
+        run: |
+          npm ci || {
+            echo "🔥 DEPENDENCY GATE FAILED"
+            echo "Reason: frontend lockfile mismatch or install drift detected"
+            echo "This is a hard law violation under DEPENDENCY_GATE_POLICY.md"
+            echo "Fix required before merge."
+            exit 1
+          }
 
       - name: Audit frontend
         working-directory: frontend
-        run: npm audit --audit-level=moderate
+        run: |
+          npm audit --audit-level=moderate || {
+            echo "🔥 DEPENDENCY GATE FAILED"
+            echo "Reason: vulnerable frontend package detected by npm audit"
+            echo "This is a hard law violation under DEPENDENCY_GATE_POLICY.md"
+            echo "Fix required before merge."
+            exit 1
+          }
 
       - name: Test frontend
         working-directory: frontend
@@ -35,11 +49,25 @@ jobs:
 
       - name: Install mobile deps (clean)
         working-directory: mobile
-        run: npm ci
+        run: |
+          npm ci || {
+            echo "🔥 DEPENDENCY GATE FAILED"
+            echo "Reason: mobile lockfile mismatch or install drift detected"
+            echo "This is a hard law violation under DEPENDENCY_GATE_POLICY.md"
+            echo "Fix required before merge."
+            exit 1
+          }
 
       - name: Audit mobile
         working-directory: mobile
-        run: npm audit --audit-level=moderate
+        run: |
+          npm audit --audit-level=moderate || {
+            echo "🔥 DEPENDENCY GATE FAILED"
+            echo "Reason: vulnerable mobile package detected by npm audit"
+            echo "This is a hard law violation under DEPENDENCY_GATE_POLICY.md"
+            echo "Fix required before merge."
+            exit 1
+          }
 
       - name: Typecheck mobile
         working-directory: mobile
@@ -54,11 +82,32 @@ jobs:
         run: pip install uv
 
       - name: Sync root deps
-        run: uv sync --frozen --extra dev
+        run: |
+          uv sync --frozen --extra dev || {
+            echo "🔥 DEPENDENCY GATE FAILED"
+            echo "Reason: root Python lock drift or unresolved frozen sync"
+            echo "This is a hard law violation under DEPENDENCY_GATE_POLICY.md"
+            echo "Fix required before merge."
+            exit 1
+          }
 
       - name: Sync api deps
         working-directory: api
-        run: uv sync --frozen
+        run: |
+          uv sync --frozen || {
+            echo "🔥 DEPENDENCY GATE FAILED"
+            echo "Reason: api Python lock drift or unresolved frozen sync"
+            echo "This is a hard law violation under DEPENDENCY_GATE_POLICY.md"
+            echo "Fix required before merge."
+            exit 1
+          }
 
       - name: Run backend tests
-        run: uv run --frozen pytest -q
+        run: |
+          uv run --frozen pytest -q || {
+            echo "🔥 DEPENDENCY GATE FAILED"
+            echo "Reason: governed verification did not pass after dependency sync"
+            echo "This is a hard law violation under DEPENDENCY_GATE_POLICY.md"
+            echo "Fix required before merge."
+            exit 1
+          }
