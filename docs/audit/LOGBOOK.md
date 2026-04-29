@@ -282,3 +282,10 @@ Every major entry should name its CISIV stage explicitly.
 - scope: exposed the detachment guard through governed read and clear API routes, restored distinct bridge route and surface attribution across message, stream, and compat ingress lanes, and added regression coverage for detachment lifecycle control and route identity integrity
 - outcome: the repo no longer carries hidden detachment review state, operator-facing detachment clearance is explicit and bounded, and ingress attribution remains accurate across the governed API boundary
 - verification note: the detachment regression slice in `tests/test_api.py` passed after the patch, and the full backend suite remained green at `668 passed, 12 subtests passed`
+
+### Dependency Gate, Root Lock, And Override Reduction
+
+- CISIV stage: `verification`
+- scope: added the first GitHub-native dependency gate workflow, generated the root `uv.lock` for AAIS orchestration/runtime, removed all now-unnecessary frontend overrides, reduced the mobile overrides to the three still forced by the Expo tree, and documented the remaining override debt explicitly
+- outcome: AAIS now enforces clean frontend/mobile installs plus audits and frozen Python sync in `.github/workflows/dependency-gate.yml`, the root runtime has deterministic lock evidence in `uv.lock`, the frontend no longer depends on override shims, and the mobile package keeps only the still-justified overrides for `@xmldom/xmldom`, `postcss`, and `uuid`
+- verification note: isolated no-override probes proved the frontend stays clean without overrides while the mobile Expo tree reintroduces vulnerable `postcss` and `uuid` plus an old `@xmldom/xmldom` without them; after the real manifest updates the backend suite, frontend test/build, mobile typecheck, frontend audit, and mobile audit were rerun

@@ -36,6 +36,8 @@ These files currently do a good job of describing the live system or one bounded
   - admits ARIS as an embedded AAIS runtime profile and carries the canonical non-copy clause
 - [DEPENDENCY_GATE_POLICY.md](../contracts/DEPENDENCY_GATE_POLICY.md)
   - canonical contract for pinned dependency admission, lockfile evidence, and drift rejection
+- [DEPENDENCY_OVERRIDES.md](../contracts/DEPENDENCY_OVERRIDES.md)
+  - rationale ledger for the remaining mobile overrides and the frontend override removals
 - [TINY_NOVA_CANONICAL.md](../subsystems/nova/TINY_NOVA_CANONICAL.md)
   - canonical markdown source for Tiny/Small Nova identity, memory boundaries, growth stages, and the Jarvis authority split
 - [NOVA_HUMAN_GUIDE.md](../subsystems/nova/NOVA_HUMAN_GUIDE.md), [NOVA_AI_OPERATING_CONTRACT.md](../subsystems/nova/NOVA_AI_OPERATING_CONTRACT.md), and [NOVA_STAGE_SPEC.md](../subsystems/nova/NOVA_STAGE_SPEC.md)
@@ -112,9 +114,16 @@ These are not hidden bugs. They are explicit limits in the current design.
   - Super Nova is no longer described as dormant or future-only in the active truth surfaces
   - the live boundary now reflects phase gate before execution, explicit activation, watchdog enforcement, bounded immune protocol observation, and Project Infi final-truth admission
 - The dependency hardening pass is now repaired and deterministic.
+  - the repo now carries a root `uv.lock` for AAIS orchestration/runtime in
+    addition to the existing `api/uv.lock`
+  - `.github/workflows/dependency-gate.yml` now enforces clean installs,
+    frozen Python sync, dependency audits, frontend build/tests, mobile
+    typecheck, and backend tests on GitHub Actions
   - `api/uv.lock` now resolves `pillow 12.2.0`
-  - `frontend/package-lock.json` now carries exact governed versions for `axios`, `follow-redirects`, `lodash`, and `postcss`
-  - `mobile/package-lock.json` now carries exact governed versions for `axios`, `@xmldom/xmldom`, `follow-redirects`, `postcss`, and `uuid`
+  - `frontend/package-lock.json` now resolves to a clean audited tree without
+    any remaining overrides
+  - `mobile/package-lock.json` now keeps only the still-required governed
+    overrides for `@xmldom/xmldom`, `postcss`, and `uuid`
 - The detachment governance and ingress identity seams are now repaired.
   - the detachment guard is exposed through governed read and clear API routes
   - message, stream, and compat ingress lanes now preserve distinct bridge route and surface attribution
@@ -161,6 +170,9 @@ These are not hidden bugs. They are explicit limits in the current design.
 - Frontend dependency audit: `0 vulnerabilities`
 - Mobile dependency audit: `0 vulnerabilities`
 - Mobile typecheck: passes
+- Root AAIS lock generation: `uv lock` passes and produces `uv.lock`
+- Root AAIS frozen sync check: `uv sync --frozen --extra dev` passes in an
+  isolated project environment
 - Link sanity for the updated Super Nova truth surfaces: `SUPER_NOVA_DOC_LINKS_OK`
 - The dependency hardening and detachment-governance pass reran the full backend suite, the full frontend test suite, the frontend production build, mobile typecheck, and the frontend/mobile dependency audits.
 

@@ -1,0 +1,64 @@
+name: Dependency Gate
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend deps (clean)
+        working-directory: frontend
+        run: npm ci
+
+      - name: Audit frontend
+        working-directory: frontend
+        run: npm audit --audit-level=moderate
+
+      - name: Test frontend
+        working-directory: frontend
+        run: npm run test:ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install mobile deps (clean)
+        working-directory: mobile
+        run: npm ci
+
+      - name: Audit mobile
+        working-directory: mobile
+        run: npm audit --audit-level=moderate
+
+      - name: Typecheck mobile
+        working-directory: mobile
+        run: npm run typecheck
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Sync root deps
+        run: uv sync --frozen --extra dev
+
+      - name: Sync api deps
+        working-directory: api
+        run: uv sync --frozen
+
+      - name: Run backend tests
+        run: uv run --frozen pytest -q

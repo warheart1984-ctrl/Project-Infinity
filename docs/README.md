@@ -17,6 +17,8 @@ Use it to answer four questions quickly:
   - live runtime maps, subsystem status, and system-facing reference docs
 - [contracts/](./contracts/)
   - active laws, protocols, doctrine, and contracts
+  - includes the dependency override ledger in
+    [contracts/DEPENDENCY_OVERRIDES.md](./contracts/DEPENDENCY_OVERRIDES.md)
   - includes the active tracing contract in
     [contracts/AAIS_TRACING_PROTOCOL.md](./contracts/AAIS_TRACING_PROTOCOL.md)
   - includes the active immune and pattern-ledger contracts in
