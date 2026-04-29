@@ -7,6 +7,7 @@ govern AAIS behavior.
 
 - document protocol and documentation law
 - dependency gate and deterministic lock policy
+- dependency override ledger and removal conditions
 - module governance and phase rules
 - cognitive bridge ingress law
 - embedded ARIS runtime and non-copy law
