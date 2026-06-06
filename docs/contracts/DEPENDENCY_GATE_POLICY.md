@@ -30,12 +30,19 @@ Stability before freedom applies to dependencies too.
 
 The current repo uses these governed evidence surfaces:
 
+- `uv.lock`
 - `api/uv.lock`
 - `frontend/package-lock.json`
 - `mobile/package-lock.json`
 
+The current repo enforces those surfaces in GitHub Actions through:
+
+- `.github/workflows/dependency-gate.yml`
+
 The current repo also uses explicit npm overrides where a safe transitive
 version must be forced instead of waiting for an upstream package to catch up.
+The current rationale for each remaining override lives in
+`docs/contracts/DEPENDENCY_OVERRIDES.md`.
 
 ## Verification Requirement
 

@@ -35,7 +35,6 @@
   },
   "overrides": {
     "@xmldom/xmldom": "0.9.10",
-    "follow-redirects": "1.16.0",
     "postcss": "8.5.12",
     "uuid": "14.0.0"
   }
