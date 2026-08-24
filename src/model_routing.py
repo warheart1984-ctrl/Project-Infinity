@@ -337,12 +337,18 @@ def resolve_model_route(
         selected_provider = normalized_provider
         provider_reason = "manual_preference"
     elif auto_best_requested:
-        if provider_check("claude") and remote_eligible:
-            selected_provider = "claude"
-            provider_reason = "auto_best_research" if normalized_mode == "research" else "auto_best_reasoning"
+        if provider_check("nvidia") and remote_eligible:
+            selected_provider = "nvidia"
+            provider_reason = "auto_best_free_nvidia"
         elif provider_check("openrouter") and remote_eligible:
             selected_provider = "openrouter"
             provider_reason = "auto_best_openrouter"
+        elif provider_check("groq") and remote_eligible:
+            selected_provider = "groq"
+            provider_reason = "auto_best_free_groq"
+        elif provider_check("claude") and remote_eligible:
+            selected_provider = "claude"
+            provider_reason = "auto_best_research" if normalized_mode == "research" else "auto_best_reasoning"
         else:
             selected_provider = "local"
             provider_reason = "auto_best_local"

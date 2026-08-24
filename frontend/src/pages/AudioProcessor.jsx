@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 import { apiPost, getApiErrorMessage } from '../lib/api';
 import { addHistoryEntry } from '../lib/history';
 import './AudioProcessor.css';
@@ -10,13 +11,17 @@ function AudioProcessor() {
   const [loading, setLoading] = useState(false);
   const [features, setFeatures] = useState(null);
   const [silentSegments, setSilentSegments] = useState([]);
+  const [musicPrompt, setMusicPrompt] = useState('');
+  const [musicDuration, setMusicDuration] = useState(6);
+  const [musicLoading, setMusicLoading] = useState(false);
+  const [musicAudioUrl, setMusicAudioUrl] = useState('');
+  const [musicModel, setMusicModel] = useState('');
 
   const handleAudioSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
       setSelectedAudio(file);
-      const audio = new Audio(URL.createObjectURL(file));
-      setPreview(audio);
+      setPreview(URL.createObjectURL(file));
     }
   };
 
@@ -74,13 +79,44 @@ function AudioProcessor() {
     }
   };
 
+  const handleGenerateMusic = async () => {
+    if (!musicPrompt.trim()) {
+      toast.error('Enter a music prompt');
+      return;
+    }
+    setMusicLoading(true);
+    try {
+      const response = await apiPost('/api/audio/music/generate', {
+        prompt: musicPrompt,
+        duration_sec: musicDuration,
+      });
+      const url = `data:audio/wav;base64,${response.data.audio}`;
+      setMusicAudioUrl(url);
+      setMusicModel(response.data.model || 'music');
+      addHistoryEntry({
+        type: 'audio',
+        prompt: musicPrompt,
+        output: 'Generated music clip',
+        model: response.data.model || 'MusicGen',
+      });
+      toast.success('Music clip ready');
+    } catch (error) {
+      toast.error(`Music error: ${getApiErrorMessage(error)}`);
+    } finally {
+      setMusicLoading(false);
+    }
+  };
+
   return (
     <div className="audio-processor">
       <div className="page-intro">
         <h1>Audio Processor</h1>
-        <p>Upload audio, extract quick metrics, and validate the auxiliary backend utilities.</p>
+        <p>
+          Analyze uploads, then generate short music clips.{' '}
+          <Link to="/model-library">Browse Model Library</Link>
+        </p>
       </div>
-      
+
       <div className="processor-container">
         <div className="input-section page-panel">
           <label>Select Audio File</label>
@@ -88,13 +124,13 @@ function AudioProcessor() {
             {preview ? (
               <div className="audio-player">
                 <audio controls style={{ width: '100%' }}>
-                  <source src={URL.createObjectURL(selectedAudio)} type={selectedAudio.type} />
+                  <source src={preview} type={selectedAudio?.type} />
                 </audio>
-                <p className="file-name">{selectedAudio.name}</p>
+                <p className="file-name">{selectedAudio?.name}</p>
               </div>
             ) : (
               <div className="upload-placeholder">
-                <p>🎵 Click to select an audio file</p>
+                <p>Click to select an audio file</p>
               </div>
             )}
             <input
@@ -121,6 +157,39 @@ function AudioProcessor() {
               {loading ? 'Processing...' : 'Detect Silence'}
             </button>
           </div>
+        </div>
+
+        <div className="input-section page-panel">
+          <label>Generate music</label>
+          <textarea
+            value={musicPrompt}
+            onChange={(event) => setMusicPrompt(event.target.value)}
+            placeholder="lo-fi beat with soft piano and rain"
+            rows="4"
+          />
+          <div className="control-group" style={{ margin: '1rem 0' }}>
+            <label>Duration: {musicDuration}s</label>
+            <input
+              type="range"
+              min="2"
+              max="12"
+              value={musicDuration}
+              onChange={(event) => setMusicDuration(Number(event.target.value))}
+            />
+          </div>
+          <button
+            className="process-btn"
+            onClick={handleGenerateMusic}
+            disabled={musicLoading}
+          >
+            {musicLoading ? 'Composing…' : 'Generate Music'}
+          </button>
+          {musicAudioUrl ? (
+            <div className="audio-player" style={{ marginTop: '1rem' }}>
+              <audio controls src={musicAudioUrl} style={{ width: '100%' }} />
+              <p className="file-name">Model: {musicModel}</p>
+            </div>
+          ) : null}
         </div>
 
         {features && (

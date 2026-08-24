@@ -96,6 +96,33 @@ def _normalize_app_shell_base_path(value: str | None) -> str:
 APP_SHELL_BASE_PATH = _normalize_app_shell_base_path(os.getenv("AAIS_APP_BASE"))
 
 
+class ApiPathPrefixRestoringWSGI:
+    """Restore the `/api` prefix stripped by Starlette `Mount("/api")`.
+
+    The SPA calls `/api/chat/sessions` and `/api/jarvis/...` directly. Flask still
+    registers those full paths, while `/legacy_api` remains the explicit bridge
+    mount used by stress tools and health diagnostics.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        environ = dict(environ)
+        path = environ.get("PATH_INFO") or "/"
+        if path == "/":
+            restored = "/api"
+        elif path == "/api" or path.startswith("/api/"):
+            restored = path
+        else:
+            restored = "/api" + (path if path.startswith("/") else f"/{path}")
+        environ["PATH_INFO"] = restored
+        script_name = environ.get("SCRIPT_NAME") or ""
+        if script_name.endswith("/api"):
+            environ["SCRIPT_NAME"] = script_name[: -len("/api")] or ""
+        return self.app(environ, start_response)
+
+
 class LegacyFlaskApiBridge:
     def __init__(self) -> None:
         self.loaded = False
@@ -633,8 +660,19 @@ def _forward_legacy_runtime_json_request(path: str, payload: dict) -> tuple[int,
 @app.get("/")
 def index():
     if _has_modern_frontend_bundle():
-        return RedirectResponse(APP_SHELL_BASE_PATH)
+        return RedirectResponse(f"{APP_SHELL_BASE_PATH}/jarvis")
     return _serve_frontend_index()
+
+
+@app.get("/jarvis")
+@app.get("/jarvis/{full_path:path}")
+def jarvis_root_alias(full_path: str = ""):
+    """Catch bare /jarvis links when the SPA was built without a router basename."""
+    suffix = str(full_path or "").lstrip("/")
+    target = f"{APP_SHELL_BASE_PATH}/jarvis"
+    if suffix:
+        target = f"{target}/{suffix}"
+    return RedirectResponse(target)
 
 @app.get("/health")
 def health(request: Request):
@@ -1479,9 +1517,19 @@ def packaged_frontend(full_path: str = ""):
         raise HTTPException(status_code=404, detail="Packaged frontend bundle is not available")
 
     normalized_path = str(full_path or "").lstrip("/")
+    if normalized_path in {"", "nova", "nova-the-north-star"}:
+        return RedirectResponse(f"{APP_SHELL_BASE_PATH}/jarvis")
     if normalized_path:
         asset_path = _static_file_path(normalized_path)
         if asset_path:
             return FileResponse(asset_path)
 
     return _serve_frontend_index()
+
+
+# Mounted last so shell-owned `/api/jarvis` and `/api/memory/write` keep priority.
+app.mount(
+    "/api",
+    WSGIMiddleware(ApiPathPrefixRestoringWSGI(legacy_api_bridge)),
+    name="legacy_api_root",
+)

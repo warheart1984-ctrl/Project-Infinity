@@ -414,7 +414,7 @@ function MemoryBank() {
               <span>Memory List</span>
               <h2>Durable notes and overrides</h2>
             </div>
-            <Link className="memory-panel-link" to="/">Back to Nova</Link>
+            <Link className="memory-panel-link" to="/jarvis">Back to Console</Link>
           </div>
           {loading ? (
             <div className="memory-empty">Loading memories…</div>

@@ -6,7 +6,11 @@ import AmplifyAuthGate from './components/AmplifyAuthGate';
 import './App.css';
 
 const routerBasename = (() => {
-  const configuredBasename = import.meta?.env?.VITE_ROUTER_BASENAME || '';
+  // Vite only statically replaces direct `import.meta.env.VITE_*` / `BASE_URL`
+  // access. Optional chaining (`import.meta?.env?.…`) leaves basename empty in
+  // production, so links navigate to `/jarvis` (404) instead of `/app/jarvis`.
+  const configuredBasename =
+    import.meta.env.VITE_ROUTER_BASENAME || import.meta.env.BASE_URL || '';
   const value = String(configuredBasename).trim();
   if (!value || value === '/') {
     return undefined;
@@ -16,12 +20,12 @@ const routerBasename = (() => {
 
 const JarvisPage = lazy(() => import('./pages/JarvisPage'));
 const RepoManager = lazy(() => import('./pages/RepoManager'));
-const NovaPage = lazy(() => import('./pages/NovaPage'));
 const MemoryBank = lazy(() => import('./pages/MemoryBank'));
 const TextGenerator = lazy(() => import('./pages/TextGenerator'));
 const ImageAnalyzer = lazy(() => import('./pages/ImageAnalyzer'));
 const ImageGenerator = lazy(() => import('./pages/ImageGenerator'));
 const AudioProcessor = lazy(() => import('./pages/AudioProcessor'));
+const ModelLibrary = lazy(() => import('./pages/ModelLibrary'));
 const BatchProcessor = lazy(() => import('./pages/BatchProcessor'));
 const History = lazy(() => import('./pages/History'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -61,18 +65,22 @@ function RouteFallback() {
 
 function AppShell() {
   const location = useLocation();
-  const isNovaRoute = location.pathname === '/' || location.pathname.startsWith('/nova');
-  const isJarvisRoute = location.pathname.startsWith('/jarvis');
+  const isJarvisRoute =
+    location.pathname === '/'
+    || location.pathname.startsWith('/jarvis')
+    || location.pathname.startsWith('/nova')
+    || location.pathname.startsWith('/operator')
+    || location.pathname.startsWith('/platform');
 
   return (
-    <div className={`App ${isNovaRoute ? 'App--nova' : ''} ${isJarvisRoute ? 'App--jarvis' : ''}`}>
+    <div className={`App ${isJarvisRoute ? 'App--jarvis' : ''}`}>
       <Navbar />
-      <main className={`main-content ${isNovaRoute ? 'main-content--nova' : ''} ${isJarvisRoute ? 'main-content--jarvis' : ''}`}>
+      <main className={`main-content ${isJarvisRoute ? 'main-content--jarvis' : ''}`}>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            <Route path="/" element={<NovaPage />} />
-            <Route path="/nova" element={<NovaPage />} />
-            <Route path="/nova-the-north-star" element={<NovaPage />} />
+            <Route path="/" element={<Navigate to="/jarvis" replace />} />
+            <Route path="/nova" element={<Navigate to="/jarvis" replace />} />
+            <Route path="/nova-the-north-star" element={<Navigate to="/jarvis" replace />} />
             <Route path="/jarvis" element={<JarvisPage />} />
             <Route path="/jarvis/repo-manager" element={<RepoManager />} />
             <Route path="/repo-manager" element={<Navigate to="/jarvis/repo-manager" replace />} />
@@ -84,6 +92,7 @@ function AppShell() {
             <Route path="/image-analyzer" element={<ImageAnalyzer />} />
             <Route path="/image-generator" element={<ImageGenerator />} />
             <Route path="/audio-processor" element={<AudioProcessor />} />
+            <Route path="/model-library" element={<ModelLibrary />} />
             <Route path="/batch-processor" element={<BatchProcessor />} />
             <Route path="/history" element={<History />} />
             <Route path="/settings" element={<Settings />} />
@@ -111,7 +120,7 @@ function AppShell() {
               <Route path="/platform/marketplace" element={<PlatformMarketplace />} />
             </Route>
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/jarvis" replace />} />
           </Routes>
         </Suspense>
       </main>

@@ -166,6 +166,7 @@ class MultiModalAI:
         self.vision_model = None
         self.vision_processor = None
         self.image_generator = None
+        self.image_to_image_generator = None
         self.text_adapter_aliases = {}
         self.active_text_adapter = None
         self.adapter_governance = {}
@@ -610,6 +611,38 @@ class MultiModalAI:
                 **pipe_kwargs,
             ).to(self.device)
             logger.info("Image generation model loaded")
+
+    def _load_image_to_image_generator(self):
+        """Load image-to-image Diffusers pipeline (shares model family with text2img)."""
+        if self.image_to_image_generator is not None:
+            return
+
+        if os.getenv("AAIS_DISABLE_IMAGE_GENERATION", "false").lower() == "true":
+            raise RuntimeError("Image generation is disabled for this deployment")
+
+        with timer("Load image-to-image generator"):
+            self.image_model_name = getattr(self, "image_model_name", None) or self._resolve_model_name(
+                "AAIS_IMAGE_MODEL_NAME",
+                "stabilityai/stable-diffusion-2",
+                "optimum-intel-internal-testing/tiny-stable-diffusion-torch",
+            )
+            img2img_name = os.getenv("AAIS_IMG2IMG_MODEL_NAME", "").strip() or self.image_model_name
+            logger.info("Loading image-to-image model: %s", img2img_name)
+            image_model_source = self._resolve_local_model_source(img2img_name)
+            try:
+                from diffusers import AutoPipelineForImage2Image
+            except ImportError as exc:
+                raise ImportError(
+                    "diffusers is required for image-to-image. "
+                    "Install with: pip install diffusers"
+                ) from exc
+
+            pipe_kwargs = {"torch_dtype": self.dtype}
+            self.image_to_image_generator = AutoPipelineForImage2Image.from_pretrained(
+                image_model_source,
+                **pipe_kwargs,
+            ).to(self.device)
+            logger.info("Image-to-image model loaded")
 
     def _generate_from_rendered_prompt(
         self,
@@ -1136,6 +1169,49 @@ class MultiModalAI:
 
         except Exception as e:
             logger.error(f"Error generating image: {e}")
+            raise
+
+    @timed
+    def generate_image_to_image(
+        self,
+        prompt,
+        image_input,
+        *,
+        num_inference_steps=40,
+        strength=0.65,
+        guidance_scale=7.5,
+    ):
+        """Transform an input image with a text prompt (img2img).
+
+        Args:
+            prompt: Text guidance for the transform
+            image_input: PIL Image (RGB)
+            num_inference_steps: Diffusion steps
+            strength: How much to transform (0=keep, 1=full redraw)
+            guidance_scale: Classifier-free guidance
+
+        Returns:
+            Generated PIL Image
+        """
+        try:
+            logger.info(
+                "Generating img2img (steps=%s strength=%s): %s",
+                num_inference_steps,
+                strength,
+                prompt,
+            )
+            self._load_image_to_image_generator()
+            image = self.image_to_image_generator(
+                prompt=prompt,
+                image=image_input,
+                num_inference_steps=int(num_inference_steps),
+                strength=float(strength),
+                guidance_scale=float(guidance_scale),
+            ).images[0]
+            logger.info("Image-to-image generation completed")
+            return image
+        except Exception as e:
+            logger.error(f"Error generating img2img: {e}")
             raise
 
     @timed

@@ -12,14 +12,25 @@ vi.mock('./lib/amplifyAuth', () => ({
   teardownAmplifyAuth: () => {},
 }));
 
-vi.mock('./pages/NovaPage', () => ({
-  default: function MockNovaPage() {
+vi.mock('./lib/auth', () => ({
+  isAmplifyAuthEnabled: () => false,
+}));
+
+vi.mock('./components/Navbar', () => ({
+  default: function MockNavbar() {
     return (
-      <main>
-        <h1>Small Nova</h1>
-        <p>Companion surface under Jarvis authority</p>
-      </main>
+      <nav>
+        <span>Operator Console</span>
+        <a href="/jarvis">Console</a>
+        <a href="/memory">Memory Bank</a>
+      </nav>
     );
+  },
+}));
+
+vi.mock('./components/AmplifyAuthGate', () => ({
+  default: function MockAmplifyAuthGate() {
+    return null;
   },
 }));
 
@@ -39,14 +50,24 @@ describe('App routing', () => {
     window.history.pushState({}, '', '/');
   });
 
-  it('keeps Small Nova as the home surface', async () => {
+  it('launches Jarvis console as the home surface', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: /Small Nova/i })).toBeTruthy();
-    expect(screen.getByText(/Companion surface under Jarvis authority/i)).toBeTruthy();
-    expect(screen.getByRole('link', { name: /^Categories$/i })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: /Jarvis/i })).toBeTruthy();
+    expect(screen.getByText(/Private command deck \/ operator console/i)).toBeTruthy();
+    expect(screen.getByText(/^Operator Console$/i)).toBeTruthy();
     expect(screen.getByRole('link', { name: /^Console$/i })).toBeTruthy();
     expect(screen.getByRole('link', { name: /^Memory Bank$/i })).toBeTruthy();
+  });
+
+  it('retires Nova landing routes into the Jarvis console', async () => {
+    window.history.pushState({}, '', '/nova');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: /Jarvis/i })).toBeTruthy();
+    expect(screen.getByText(/Private command deck \/ operator console/i)).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /^Small Nova$/i })).toBeNull();
   });
 
   it('jarvis route remains accessible', async () => {

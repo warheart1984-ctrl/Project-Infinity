@@ -122,6 +122,27 @@ class MockMultiModalAI:
 
         return image
 
+    def generate_image_to_image(
+        self,
+        prompt,
+        image_input,
+        *,
+        num_inference_steps=40,
+        strength=0.65,
+        guidance_scale=7.5,
+    ):
+        del guidance_scale
+        from PIL import ImageDraw
+
+        base = image_input.convert("RGB").resize((1024, 768))
+        draw = ImageDraw.Draw(base)
+        draw.rounded_rectangle((48, 48, 520, 220), radius=20, fill="#0b1220")
+        draw.text((72, 72), "AAIS MOCK IMG2IMG", fill="#f8fafc")
+        draw.text((72, 112), f"Steps: {num_inference_steps}  Strength: {strength}", fill="#94a3b8")
+        snippet = (prompt or "").strip()[:48] or "transform"
+        draw.text((72, 156), snippet, fill="#e2e8f0")
+        return base
+
     def multimodal_query(self, text_prompt, image=None):
         if image is None:
             return {
