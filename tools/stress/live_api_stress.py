@@ -281,7 +281,7 @@ def run_stress(*, auto_discover: bool = False):
     status_paths = resolve_status_paths(auto_discover=auto_discover)
 
     # 1. Basic surfaces
-    basic = ["/health", "/health/details", "/app", "/legacy_api/api/jarvis/providers"]
+    basic = ["/health", "/health/details", "/app/jarvis", "/legacy_api/api/jarvis/providers"]
     for p in basic:
         RESULTS[p] = stress_endpoint(p, ITERATIONS * 2)
 

@@ -238,7 +238,7 @@ def handle_start(args: argparse.Namespace) -> int:
 
     target_host = browser_host(args.host)
     app_base = normalize_app_base(args.app_base)
-    app_url = f"http://{target_host}:{args.port}{app_base}"
+    app_url = f"http://{target_host}:{args.port}{app_base.rstrip('/')}/jarvis"
     health_url = f"http://{target_host}:{args.port}/health"
 
     if not args.no_browser:
