@@ -294,6 +294,12 @@ const cockpitToolLinks = [
     detail: 'Plan / write / code / pictures under one governed trace.',
     to: '/task-bus',
   },
+  {
+    id: 'sovereign_assistant',
+    label: 'Sovereign Assistant',
+    detail: 'One-screen chat over the task bus — cards, lanes, artifacts.',
+    to: '/sovereign',
+  },
 ];
 
 const defaultSystemGuard = {

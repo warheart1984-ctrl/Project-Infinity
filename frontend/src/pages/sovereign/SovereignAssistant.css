@@ -1,0 +1,700 @@
+/* Sovereign Assistant — teal/ink console language (matches Task Bus / Middleware) */
+
+.sovereign-assistant {
+  --ink: #14212b;
+  --accent: #1f4d4a;
+  --accent-soft: #2a6b66;
+  --surface: #f4f7f6;
+  --line: rgba(20, 33, 43, 0.14);
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(240px, 300px);
+  gap: 0;
+  min-height: calc(100vh - 4.5rem);
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, rgba(42, 107, 102, 0.12), transparent 55%),
+    linear-gradient(180deg, #eef3f1 0%, #f7f9f8 40%, #eef2f0 100%);
+}
+
+.sovereign-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  opacity: 0.65;
+  margin: 0 0 0.25rem;
+}
+
+.sovereign-muted {
+  opacity: 0.72;
+  font-size: 0.88rem;
+}
+
+.sovereign-error {
+  color: #8b2e2e;
+  font-size: 0.88rem;
+}
+
+.sovereign-sidebar {
+  border-right: 1px solid var(--line);
+  padding: 1.1rem 0.9rem 2rem;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(6px);
+  overflow-y: auto;
+}
+
+.sovereign-sidebar__brand h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+}
+
+.sovereign-sidebar__lede {
+  margin: 0.35rem 0 0.9rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+.sovereign-sidebar__new {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.sovereign-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 1.25rem;
+}
+
+.sovereign-sidebar__link {
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+  padding: 0.45rem 0.55rem;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sovereign-sidebar__link.is-active,
+.sovereign-sidebar__link:hover {
+  background: rgba(31, 77, 74, 0.1);
+}
+
+.sovereign-sidebar__section h2 {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+}
+
+.sovereign-sidebar__list,
+.sovereign-status-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sovereign-sidebar__conv {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+}
+
+.sovereign-sidebar__conv.is-active {
+  background: rgba(31, 77, 74, 0.12);
+  font-weight: 600;
+}
+
+.sovereign-status-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  padding: 0.25rem 0;
+}
+
+.sovereign-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(31, 77, 74, 0.12);
+  border: 1px solid var(--line);
+}
+
+.sovereign-badge--live {
+  background: rgba(31, 77, 74, 0.22);
+}
+
+.sovereign-badge--simulate,
+.sovereign-badge--needs_auth {
+  opacity: 0.85;
+}
+
+.sovereign-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1rem 1.15rem 1.25rem;
+  gap: 0.75rem;
+}
+
+.sovereign-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sovereign-chat__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.sovereign-chat__header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.sovereign-chat__mode {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.85rem;
+}
+
+.sovereign-chat__mode a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sovereign-chat__messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-bottom: 0.5rem;
+  max-height: min(52vh, 640px);
+}
+
+.sovereign-empty {
+  padding: 1.5rem 0.25rem;
+  max-width: 36rem;
+}
+
+.sovereign-bubble {
+  max-width: min(720px, 100%);
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.sovereign-bubble--user {
+  align-self: flex-end;
+  background: rgba(31, 77, 74, 0.08);
+}
+
+.sovereign-bubble--assistant {
+  align-self: flex-start;
+}
+
+.sovereign-bubble__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.sovereign-bubble__text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.sovereign-link-btn {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.sovereign-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.sovereign-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  background: #fff;
+}
+
+.sovereign-card__type {
+  margin: 0 0 0.2rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.65;
+}
+
+.sovereign-card h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.92rem;
+}
+
+.sovereign-card p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.sovereign-card__link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.sovereign-input {
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+}
+
+.sovereign-input textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(20, 33, 43, 0.22);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.92);
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.sovereign-input__bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.55rem;
+}
+
+.sovereign-check {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+.sovereign-input__bar button,
+.sovereign-artifacts__sync button,
+.sovereign-skills button,
+.sovereign-replay__actions button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  background: linear-gradient(135deg, var(--accent-soft) 0%, var(--accent) 100%);
+  color: #f4f7f6;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sovereign-input__bar button:disabled,
+.sovereign-artifacts__sync button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sovereign-ghost-btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sovereign-main__panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.65rem;
+}
+
+.sovereign-telemetry__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.sovereign-main__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sovereign-focus {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--sovereign-gap, 0.85rem);
+  margin-bottom: 0.35rem;
+}
+
+.sovereign-focus h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.sovereign-focus__objective {
+  margin: 0 0 0.45rem;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+.sovereign-focus__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sovereign-focus__actions button:not(.sovereign-ghost-btn) {
+  border: none;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  background: linear-gradient(135deg, var(--accent-soft) 0%, var(--accent) 100%);
+  color: #f4f7f6;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sovereign-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  margin-bottom: 0.65rem;
+}
+
+.sovereign-recovery__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.sovereign-recovery__actions button:not(.sovereign-ghost-btn) {
+  border: none;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  background: var(--accent);
+  color: #f4f7f6;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sovereign-scratch header h2,
+.sovereign-stim-prefs h3 {
+  margin: 0 0 0.35rem;
+}
+
+.sovereign-scratch__form {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.sovereign-scratch__form input {
+  flex: 1;
+  border: 1px solid rgba(20, 33, 43, 0.22);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+}
+
+.sovereign-scratch__list,
+.sovereign-scratch__candidates ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sovereign-scratch__list li,
+.sovereign-scratch__candidates li {
+  border-top: 1px solid var(--line);
+  padding: 0.65rem 0;
+}
+
+.sovereign-scratch__row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.sovereign-stim-prefs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sovereign-stim-prefs label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.sovereign-stim-prefs select {
+  max-width: 16rem;
+  font: inherit;
+}
+
+.sovereign-commitment-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0.7rem;
+  border: 1px dashed rgba(31, 77, 74, 0.35);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.sovereign-artifacts--compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.sovereign-chat--dense .sovereign-bubble {
+  padding: 0.5rem 0.7rem;
+}
+
+.sovereign-assistant[data-animation='off'] * {
+  transition: none !important;
+  animation: none !important;
+}
+
+.sovereign-assistant[data-visual='minimal'] .sovereign-sidebar__lede {
+  display: none;
+}
+
+
+.sovereign-lanes h3,
+.sovereign-replay h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.sovereign-lanes ul,
+.sovereign-replay ol {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.1rem;
+}
+
+.sovereign-lanes details,
+.sovereign-replay details {
+  margin-top: 0.35rem;
+}
+
+.sovereign-lanes pre,
+.sovereign-replay pre {
+  font-size: 0.72rem;
+  overflow: auto;
+  max-height: 10rem;
+  background: rgba(20, 33, 43, 0.04);
+  padding: 0.4rem;
+  border-radius: 6px;
+}
+
+.sovereign-replay__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sovereign-replay__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.sovereign-replay__actions a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sovereign-artifacts {
+  border-left: 1px solid var(--line);
+  padding: 1.1rem 0.9rem 2rem;
+  background: rgba(255, 255, 255, 0.5);
+  overflow-y: auto;
+}
+
+.sovereign-artifacts__head h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.sovereign-artifacts__sync {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.85rem;
+}
+
+.sovereign-artifacts__sync select,
+.sovereign-settings select {
+  margin-left: 0.35rem;
+  font: inherit;
+}
+
+.sovereign-artifacts__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.sovereign-artifacts__tabs button {
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.sovereign-artifacts__tabs button.is-active {
+  background: rgba(31, 77, 74, 0.14);
+  border-color: rgba(31, 77, 74, 0.35);
+  font-weight: 600;
+}
+
+.sovereign-skills header,
+.sovereign-settings {
+  margin-bottom: 0.75rem;
+}
+
+.sovereign-skills header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sovereign-skills ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sovereign-skills li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.sovereign-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 36rem;
+}
+
+.sovereign-settings__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.sovereign-settings__links a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (max-width: 1100px) {
+  .sovereign-assistant {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+
+  .sovereign-artifacts {
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 760px) {
+  .sovereign-assistant {
+    grid-template-columns: 1fr;
+  }
+
+  .sovereign-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sovereign-main__panels {
+    grid-template-columns: 1fr;
+  }
+}

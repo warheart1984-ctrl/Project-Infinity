@@ -43,6 +43,7 @@ const OperatorConsole = lazy(() => import('./pages/OperatorConsole'));
 const OperatorPlugins = lazy(() => import('./pages/OperatorPlugins'));
 const OperatorOauthCallback = lazy(() => import('./pages/OperatorOauthCallback'));
 const TaskBus = lazy(() => import('./pages/taskBus/TaskBusConsole'));
+const SovereignAssistant = lazy(() => import('./pages/sovereign/SovereignAssistant'));
 const OperatorBrainSessions = lazy(() => import('./pages/OperatorBrainSessions'));
 const OperatorLedger = lazy(() => import('./pages/OperatorLedger'));
 const OperatorCeilingRecovery = lazy(() => import('./pages/OperatorCeilingRecovery'));
@@ -77,7 +78,11 @@ function AppShell() {
     || location.pathname.startsWith('/platform')
     || location.pathname.startsWith('/adaptive-music')
     || location.pathname.startsWith('/holo-rt4d')
-    || location.pathname.startsWith('/spatial-vision');
+    || location.pathname.startsWith('/spatial-vision')
+    || location.pathname.startsWith('/task-bus')
+    || location.pathname.startsWith('/middleware')
+    || location.pathname.startsWith('/sovereign')
+    || location.pathname.startsWith('/assistant');
 
   return (
     <div className={`App ${isJarvisRoute ? 'App--jarvis' : ''}`}>
@@ -113,6 +118,8 @@ function AppShell() {
             <Route path="/workflows/templates" element={<WorkflowTemplates />} />
             <Route path="/task-bus" element={<TaskBus />} />
             <Route path="/middleware" element={<TaskBus />} />
+            <Route path="/sovereign/*" element={<SovereignAssistant />} />
+            <Route path="/assistant/*" element={<SovereignAssistant />} />
             <Route path="/auth/sign-in" element={<AmplifySignIn />} />
             <Route element={<AmplifyAuthGate />}>
               <Route path="/operator" element={<OperatorConsole />} />

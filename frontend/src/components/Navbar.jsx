@@ -18,6 +18,8 @@ function Navbar() {
     || location.pathname.startsWith('/spatial-vision')
     || location.pathname.startsWith('/task-bus')
     || location.pathname.startsWith('/middleware')
+    || location.pathname.startsWith('/sovereign')
+    || location.pathname.startsWith('/assistant')
     || location.pathname.startsWith('/nova');
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -26,6 +28,7 @@ function Navbar() {
   const navItems = isJarvisRoute
     ? [
         { type: 'route', to: '/jarvis', label: 'Console' },
+        { type: 'route', to: '/sovereign', label: 'Assistant' },
         { type: 'route', to: '/operator', label: 'Dashboard' },
         { type: 'route', to: '/operator/plugins', label: 'Plugins' },
         { type: 'route', to: '/task-bus', label: 'Middleware' },
