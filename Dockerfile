@@ -22,6 +22,7 @@ COPY app ./app
 COPY src ./src
 COPY scorpion ./scorpion
 COPY forge ./forge
+COPY forge_eval ./forge_eval
 COPY ai_factory ./ai_factory
 COPY evolve_engine ./evolve_engine
 COPY lab ./lab
@@ -73,6 +74,7 @@ COPY --from=builder /build/app ./app
 COPY --from=builder /build/src ./src
 COPY --from=builder /build/scorpion ./scorpion
 COPY --from=builder /build/forge ./forge
+COPY --from=builder /build/forge_eval ./forge_eval
 COPY --from=builder /build/ai_factory ./ai_factory
 COPY --from=builder /build/evolve_engine ./evolve_engine
 COPY --from=builder /build/lab ./lab
