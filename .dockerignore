@@ -1,21 +1,75 @@
-# Docker build context — keep GHCR images smaller
+# Docker build context — keep images small; never bake secrets or weights
+
 .git
+.github
+.cursor
+.codex
 .runtime
 .runtime_test
+.runtime*/
+**/.venv
+**/venv
 **/__pycache__
 **/*.pyc
+**/*.pyo
 **/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/node_modules
+**/coverage
+**/.DS_Store
+
+# Env / secrets (placeholders only live in *.example)
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+**/credentials.json
+**/service-account*.json
+
+# Frontend build artifacts (rebuilt in image)
 frontend/node_modules
 frontend/build
-Project-Infinity1
-wolf-cog-os/output
-*.iso
-*.zip
-*.pt
-*.onnx
+frontend/coverage
+aais-middleware/node_modules
+aais-middleware/dist
+
+# Large local runtime / models (never ship in API image)
+runtime/bin
+runtime/models
+**/*.gguf
+**/*.ggml
+**/*.safetensors
+**/*.pt
+**/*.onnx
+**/*.bin
+**/*.iso
+**/*.zip
+**/*.tar
+**/*.tar.gz
+**/*.whl
+
+# DBs / local state
 data/jarvis.db
-mechanic/fixtures
+**/*.sqlite
+**/*.sqlite3
+
+# Docs / archives / unrelated trees
 docs/_archive
 docs/fieldguide/*.pdf
-.azure
+Project-Infinity1
+wolf-cog-os/output
+mechanic/fixtures
+archive/
 encore
+.azure
+
+# Tests not needed at runtime (keep governance; drop heavy stress corpora if present)
+tools/stress/fixtures
+**/test-results
+**/playwright-report

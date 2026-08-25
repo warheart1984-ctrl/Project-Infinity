@@ -1,11 +1,20 @@
 # Project Infinity (AAIS) — Render Blueprint
-# Maps deploy/pilot/docker-compose.yml to managed Render services.
-# Apply: Dashboard → New → Blueprint, or `render blueprints validate` then sync.
+# Apply: Dashboard → New → Blueprint, or sync from this repo.
 #
-# Gaps vs local pilot (document before production):
-# - MinIO → use external S3-compatible storage (set PLATFORM_S3_* manually)
-# - Shared pilot_runtime volume → per-service disks below (not shared across replicas)
-# - ParadeDB/pg_search → standard Render Postgres (search features may differ)
+# Sovereign Assistant stack users care about:
+#   aais-api (Docker web) + aais-frontend (static SPA; Docker image used by compose)
+# Optional platform mesh (pilot): platform-api / platform-worker / platform-db / platform-redis
+# Frontend Docker/self-host: frontend/docs/RENDER_DEPLOY.md (Option A)
+# Blueprint uses Option B static — Vite bake-in; nginx PORT binding stays local/compose
+#
+# Gaps vs local docker compose:
+# - Ephemeral disk: WITHOUT the aais-runtime disk below, OAuth tokens under
+#   .runtime/oauth are wiped on every redeploy/restart — attach the disk or use
+#   an external secret store
+# - MinIO → external S3 (PLATFORM_S3_* sync:false)
+# - Shared pilot_runtime volume → per-service disks (not shared across replicas)
+# - Static FE cannot reverse-proxy /api — set VITE_API_BASE_URL=https://<aais-api> at build
+# - WSS: browser must use wss:// to aais-api (or custom domain); Render terminates TLS
 
 databases:
   - name: platform-db
@@ -13,6 +22,43 @@ databases:
     region: oregon
     databaseName: platform
     user: platform
+
+envVarGroups:
+  - name: aais-provider-keys
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: AAIS_OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: AAIS_CLAUDE_MODEL
+        value: claude-3-5-haiku-latest
+
+  - name: aais-oauth-middleware
+    envVars:
+      - key: AAIS_GMAIL_OAUTH_CLIENT_ID
+        sync: false
+      - key: AAIS_GMAIL_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: AAIS_GMAIL_OAUTH_REDIRECT_URI
+        sync: false
+      - key: AAIS_MS_OAUTH_CLIENT_ID
+        sync: false
+      - key: AAIS_MS_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: AAIS_MS_OAUTH_REDIRECT_URI
+        sync: false
+      - key: AAIS_MS_OAUTH_TENANT
+        value: common
+      - key: AAIS_GMAIL_ACCESS_TOKEN
+        sync: false
+      - key: AAIS_MS_GRAPH_TOKEN
+        sync: false
 
 services:
   # Internal platform API (was platform-api in compose)
@@ -53,7 +99,6 @@ services:
         generateValue: true
       - key: PLATFORM_EXCHANGE_SECRET
         generateValue: true
-      # Replace with your S3-compatible bucket (MinIO is not on Render)
       - key: PLATFORM_S3_ENDPOINT
         sync: false
       - key: PLATFORM_S3_BUCKET
@@ -63,7 +108,6 @@ services:
       - key: PLATFORM_S3_SECRET_KEY
         sync: false
 
-  # Background worker (was platform-worker in compose)
   - type: worker
     name: platform-worker
     runtime: docker
@@ -115,32 +159,48 @@ services:
           type: pserv
           envVarKey: PLATFORM_S3_SECRET_KEY
 
-  # Public operator API (was aais-api in compose)
+  # Public AAIS API — Jarvis / task-bus / OAuth / middleware plugs
+  # aais-middleware Node package is NOT a separate Render service (Python host owns HTTP).
   - type: web
     name: aais-api
     runtime: docker
     region: oregon
     plan: starter
-    dockerfilePath: ./deploy/pilot/Dockerfile.aais
+    dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    dockerCommand: sh -c "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /health
     disk:
       name: aais-runtime
       mountPath: /app/.runtime
       sizeGB: 5
     envVars:
+      - fromGroup: aais-provider-keys
+      - fromGroup: aais-oauth-middleware
       - key: PORT
         value: "8000"
       - key: AAIS_RUNTIME_DIR
         value: /app/.runtime/aais-data
+      - key: JARVIS_DATA_DIR
+        value: /app/.runtime/aais-data
+      - key: ENVIRONMENT
+        value: production
       - key: PLATFORM_API_BASE_URL
         fromService:
           name: platform-api
           type: pserv
           property: hostport
+      # Optional long-lived tokens (prefer OAuth store on disk)
+      - key: GMAIL_ACCESS_TOKEN
+        sync: false
+      - key: MICROSOFT_GRAPH_TOKEN
+        sync: false
+      - key: APP_BEARER_TOKEN
+        sync: false
 
-  # React/Vite operator UI
+  # Operator UI — static SPA (Render Option B). SPA rewrite covers /sovereign/*.
+  # Docker FE (frontend/Dockerfile) is for compose/self-host — see frontend/docs/RENDER_DEPLOY.md.
+  # Set VITE_API_BASE_URL=https://<aais-api>.onrender.com after first API deploy (build-time).
   - type: web
     name: aais-frontend
     runtime: static
@@ -153,10 +213,17 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          name: aais-api
-          type: web
-          property: host
+        sync: false
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_AAIS_WS_ENABLED
+        value: "0"
+      - key: VITE_AAIS_WS_PATH
+        value: /ws/chat/{sessionId}
+      - key: VITE_AAIS_WS_URL
+        sync: false
+      - key: VITE_APP_BASE
+        value: /
 
   - type: keyvalue
     name: platform-redis
