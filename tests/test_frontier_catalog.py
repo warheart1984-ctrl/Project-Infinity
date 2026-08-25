@@ -13,14 +13,16 @@ from src.providers.registry_bootstrap import register_frontier_providers
 
 
 class TestFrontierCatalog(unittest.TestCase):
-    def test_catalog_includes_nvidia_nemotron(self):
+    def test_catalog_includes_nvidia_muse_glimmer(self):
         nvidia = next(spec for spec in FRONTIER_PROVIDER_SPECS if spec.name == "nvidia")
-        self.assertIn("nemotron-3-nano", nvidia.default_model)
-        self.assertIn("Nemotron", nvidia.display_name)
+        self.assertIn("muse-glimmer", nvidia.default_model)
+        self.assertIn("Muse Glimmer", nvidia.display_name)
 
     def test_resolve_provider_alias(self):
         self.assertEqual(resolve_provider_alias("gemini"), "google")
         self.assertEqual(resolve_provider_alias("nemotron"), "nvidia")
+        self.assertEqual(resolve_provider_alias("muse"), "nvidia")
+        self.assertEqual(resolve_provider_alias("glimmer"), "nvidia")
 
     def test_register_frontier_providers_lists_nvidia_disabled_without_key(self):
         registry = ProviderRegistry.__new__(ProviderRegistry)

@@ -5604,6 +5604,7 @@ function ConversationMessage({
 
 function JarvisConsole() {
   const [profile, setProfile] = useState(() => getJarvisProfile());
+  const [denseCockpit, setDenseCockpit] = useState(false);
   const [sessionId, setSessionId] = useState('');
   const [recentSessions, setRecentSessions] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -5670,6 +5671,8 @@ function JarvisConsole() {
   const [missionBusy, setMissionBusy] = useState(false);
   const [blueprint, setBlueprint] = useState(null);
   const [blueprintBusy, setBlueprintBusy] = useState(false);
+  const [providerCatalog, setProviderCatalog] = useState([]);
+  const [providersBusy, setProvidersBusy] = useState(false);
   const [protocolSession, setProtocolSession] = useState(null);
   const [protocolBusy, setProtocolBusy] = useState(false);
   const [sessionRuntime, setSessionRuntime] = useState(() => mapSessionRuntime());
@@ -6045,6 +6048,21 @@ function JarvisConsole() {
     }
   }, []);
 
+  const refreshProviders = useCallback(async () => {
+    setProvidersBusy(true);
+    try {
+      const response = await apiGet('/api/jarvis/providers');
+      const providers = Array.isArray(response.data?.providers)
+        ? response.data.providers
+        : (Array.isArray(response.data) ? response.data : []);
+      setProviderCatalog(providers);
+    } catch (error) {
+      setProviderCatalog([]);
+    } finally {
+      setProvidersBusy(false);
+    }
+  }, []);
+
   const refreshProtocol = useCallback(async (targetSessionId) => {
     const activeSessionId = targetSessionId || sessionId;
     if (!activeSessionId) {
@@ -6124,6 +6142,7 @@ function JarvisConsole() {
     refreshSystemGuard();
     refreshDreamspace();
     refreshBlueprint();
+    refreshProviders();
   }, [
     refreshActions,
     refreshBlueprint,
@@ -6133,6 +6152,7 @@ function JarvisConsole() {
     refreshEvolveDeck,
     refreshMemories,
     refreshPatchReviews,
+    refreshProviders,
     refreshSessions,
     refreshSpecialists,
     refreshSystemGuard,
@@ -6463,12 +6483,32 @@ function JarvisConsole() {
     setSelectedSpecialistPreset(null);
   }, []);
 
-  const pinPreferredProvider = useCallback((providerId) => {
-    setProfile((current) => ({
+  const pinPreferredProvider = useCallback((providerId, providers = []) => {
+    const nextId = String(providerId || 'auto');
+    const match = (providers || []).find((provider) => provider.id === nextId);
+    if (match && match.available === false) {
+      toast.error(match.activation_hint || match.reason || `${match.label || nextId} is offline`);
+      return;
+    }
+
+    setProfile((current) => {
+      const next = saveJarvisProfile({
+        ...current,
+        preferredProvider: nextId,
+        providerPreferencePinned: nextId !== 'auto',
+      });
+      return next;
+    });
+    setSessionRuntime((current) => ({
       ...current,
-      preferredProvider: providerId,
-      providerPreferencePinned: providerId !== 'auto',
+      preferredProvider: nextId,
+      providerMode: nextId === 'auto' ? 'auto_best' : 'pinned',
     }));
+    toast.success(
+      nextId === 'auto'
+        ? 'Auto Best model routing on'
+        : `Model set to ${match?.label || getProviderLabel(nextId, providers)}`,
+    );
   }, []);
 
   const openExternalUrl = useCallback((url) => {
@@ -6582,7 +6622,7 @@ function JarvisConsole() {
       const existing = String(current || '').trim();
       return existing ? `${existing}\n\n${pendingDraft.text}` : pendingDraft.text;
     });
-    toast.success('Screenshot context loaded into Jarvis.');
+    toast.success('Context loaded into Jarvis.');
   }, [booting]);
 
   const ensureSession = useCallback(async () => {
@@ -7685,18 +7725,20 @@ function JarvisConsole() {
   const activeResponseTrace = sessionRuntime.responseTrace;
   const latestSessionEvent = sessionEvents[0] || null;
   const availableProviders = useMemo(() => {
-    const providerList = Array.isArray(blueprint?.providers) && blueprint.providers.length > 0
-      ? blueprint.providers
-      : [
-        {
-          id: 'local',
-          label: 'Local Heroine',
-          available: true,
-          summary: 'Primary on-laptop AAIS model path.',
-          model: 'AAIS local runtime',
-          kind: 'local',
-        },
-      ];
+    const providerList = Array.isArray(providerCatalog) && providerCatalog.length > 0
+      ? providerCatalog
+      : (Array.isArray(blueprint?.providers) && blueprint.providers.length > 0
+        ? blueprint.providers
+        : [
+          {
+            id: 'local',
+            label: 'Local Heroine',
+            available: true,
+            summary: 'Primary on-laptop AAIS model path.',
+            model: 'AAIS local runtime',
+            kind: 'local',
+          },
+        ]);
 
     return [
       {
@@ -7720,10 +7762,16 @@ function JarvisConsole() {
         kind: provider.kind || 'local',
       })),
     ];
-  }, [blueprint]);
+  }, [blueprint, providerCatalog]);
   const selectedProvider = sessionRuntime.preferredProvider
     || (profile.providerPreferencePinned ? profile.preferredProvider : 'auto')
     || 'auto';
+  const selectableProviders = useMemo(
+    () => availableProviders.filter(
+      (provider) => provider.available !== false || provider.id === selectedProvider,
+    ),
+    [availableProviders, selectedProvider],
+  );
   const selectedProviderObject = availableProviders.find((provider) => provider.id === selectedProvider)
     || availableProviders.find((provider) => provider.id === sessionRuntime.preferredProvider)
     || availableProviders[0]
@@ -7837,7 +7885,8 @@ function JarvisConsole() {
   ];
 
   return (
-    <div className="jarvis-console">
+    <div className={`jarvis-console ${denseCockpit ? '' : 'jarvis-console--simple'}`}>
+      {denseCockpit ? (
       <section className="jarvis-hero">
         <div className="jarvis-hero-copy">
           <div className={`status-pill ${health.status === 'healthy' ? 'connected' : 'error'}`}>
@@ -7887,6 +7936,13 @@ function JarvisConsole() {
             >
               <FiRefreshCw />
               New Session
+            </button>
+            <button
+              type="button"
+              className="jarvis-secondary-button"
+              onClick={() => setDenseCockpit(false)}
+            >
+              Simple chat
             </button>
           </div>
 
@@ -7961,8 +8017,44 @@ function JarvisConsole() {
           </div>
         </div>
       </section>
+      ) : (
+      <section className="jarvis-simple-bar page-panel">
+        <div className="jarvis-simple-bar-copy">
+          <div className={`status-pill ${health.status === 'healthy' ? 'connected' : 'error'}`}>
+            <FiActivity />
+            {health.status === 'healthy' ? 'online' : 'offline'}
+          </div>
+          <div>
+            <h1>{profile.assistantName}</h1>
+            <p>
+              {listening ? 'Listening…' : sending ? 'Thinking…' : `Model: ${activeProviderLabel}. Click a model chip to switch.`}
+            </p>
+          </div>
+        </div>
+        <div className="jarvis-simple-bar-actions">
+          <button
+            type="button"
+            className="jarvis-secondary-button"
+            onClick={() => createFreshSession(profile)}
+            disabled={booting || sending}
+          >
+            <FiRefreshCw />
+            New Session
+          </button>
+          <button
+            type="button"
+            className="jarvis-secondary-button"
+            onClick={() => setDenseCockpit(true)}
+          >
+            <FiLayers />
+            Full cockpit
+          </button>
+        </div>
+      </section>
+      )}
 
       <section className="jarvis-layout">
+        {denseCockpit ? (
         <aside className="jarvis-tool-panel" id="jarvis-tool-layer">
           <div className="jarvis-side-card page-panel tool-layer-card">
             <div className="jarvis-side-title">
@@ -8085,17 +8177,32 @@ function JarvisConsole() {
             actionBusyId={actionBusyId}
           />
         </aside>
+        ) : null}
 
         <div className="jarvis-chat-shell page-panel">
           <div className="jarvis-chat-header">
             <div>
-              <h2>Nova Surface</h2>
-              <p>Cognitive interface · Session {sessionId || 'starting...'}</p>
+              <h2>Chat</h2>
+              <p>{denseCockpit ? `Cognitive interface · Session ${sessionId || 'starting...'}` : (sessionId ? `Session ${sessionId.slice(0, 8)}` : 'Starting session…')}</p>
             </div>
             <div className="jarvis-chat-health">
               <span><FiCpu /> {health.active_model_mode || 'offline'}</span>
-              <span><FiCommand /> {health.ai_status}</span>
-              <span><FiActivity /> {sessionRuntime.activeMode}</span>
+              {!denseCockpit && (
+                <button
+                  type="button"
+                  className="jarvis-secondary-button"
+                  onClick={() => setDenseCockpit(true)}
+                >
+                  <FiLayers />
+                  Tools
+                </button>
+              )}
+              {denseCockpit && (
+                <>
+                  <span><FiCommand /> {health.ai_status}</span>
+                  <span><FiActivity /> {sessionRuntime.activeMode}</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -8107,6 +8214,7 @@ function JarvisConsole() {
             onChange={handleFileIntake}
           />
 
+          {denseCockpit ? (
           <div className="jarvis-context-card jarvis-intake-card">
             <div className="jarvis-context-header">
               <div>
@@ -8222,9 +8330,10 @@ function JarvisConsole() {
               )}
             </div>
           </div>
+          ) : null}
 
           <div className="jarvis-quick-actions">
-            {quickActions.map((action) => (
+            {(denseCockpit ? quickActions : quickActions.slice(0, 3)).map((action) => (
               <button
                 key={action}
                 type="button"
@@ -8353,6 +8462,41 @@ function JarvisConsole() {
             <div ref={messagesEndRef} />
           </div>
 
+          <div className="jarvis-model-switcher page-panel">
+            <div className="jarvis-model-switcher-head">
+              <div>
+                <span>Model</span>
+                <strong>{activeProviderLabel}</strong>
+              </div>
+              <button
+                type="button"
+                className="jarvis-secondary-button"
+                onClick={() => refreshProviders()}
+                disabled={providersBusy}
+                aria-label="Refresh models"
+              >
+                <FiRefreshCw />
+                {providersBusy ? 'Refreshing…' : 'Refresh'}
+              </button>
+            </div>
+            <div className="jarvis-model-switcher-row" role="group" aria-label="Switch model">
+              {(denseCockpit ? availableProviders : selectableProviders).map((provider) => {
+                const isSelected = selectedProvider === provider.id;
+                return (
+                  <button
+                    key={`switch-${provider.id}`}
+                    type="button"
+                    className={`jarvis-model-chip ${isSelected ? 'active' : ''} ${provider.available ? '' : 'offline'}`}
+                    onClick={() => pinPreferredProvider(provider.id, availableProviders)}
+                    title={provider.summary || provider.reason || provider.label}
+                  >
+                    {provider.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="jarvis-compose">
             <textarea
               value={draft}
@@ -8365,6 +8509,7 @@ function JarvisConsole() {
               }
               rows="4"
             />
+            {denseCockpit ? (
             <div className="compose-category-shell">
               <div className="compose-category-header">
                 <div>
@@ -8427,7 +8572,7 @@ function JarvisConsole() {
                         key={provider.id}
                         type="button"
                         className={`provider-chip ${isSelected ? 'active' : ''} ${provider.available ? '' : 'offline'}`}
-                        onClick={() => pinPreferredProvider(provider.id)}
+                        onClick={() => pinPreferredProvider(provider.id, availableProviders)}
                         title={provider.summary || provider.reason || provider.label}
                       >
                         <strong>{provider.label}</strong>
@@ -8561,15 +8706,25 @@ function JarvisConsole() {
                 </div>
               )}
             </div>
+            ) : null}
             <div className="jarvis-compose-actions">
               <div className="compose-meta">
-                <span>{activePersona} persona</span>
-                <span>{getResponseModeLabel(selectedResponseMode)} selected</span>
-                <span>{getProviderLabel(selectedProvider, availableProviders)} provider</span>
-                <span>{selectedSpecialistPresetObject ? `${selectedSpecialistPresetObject.label} preset` : `${selectedSpecialists.length || 0} specialists pinned`}</span>
-                <span>{conversationLane === 'documents' ? `intake ${documents.length} docs` : 'direct chat lane'}</span>
-                <span>{draft.length} chars</span>
-                <span>Ctrl/Cmd + Enter</span>
+                {denseCockpit ? (
+                  <>
+                    <span>{activePersona} persona</span>
+                    <span>{getResponseModeLabel(selectedResponseMode)} selected</span>
+                    <span>{getProviderLabel(selectedProvider, availableProviders)} provider</span>
+                    <span>{selectedSpecialistPresetObject ? `${selectedSpecialistPresetObject.label} preset` : `${selectedSpecialists.length || 0} specialists pinned`}</span>
+                    <span>{conversationLane === 'documents' ? `intake ${documents.length} docs` : 'direct chat lane'}</span>
+                    <span>{draft.length} chars</span>
+                    <span>Ctrl/Cmd + Enter</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{getResponseModeLabel(selectedResponseMode)}</span>
+                    <span>Ctrl/Cmd + Enter</span>
+                  </>
+                )}
               </div>
               <div className="compose-button-cluster">
                 <button
@@ -8605,6 +8760,7 @@ function JarvisConsole() {
           </div>
         </div>
 
+        {denseCockpit ? (
         <aside className="jarvis-side-panel">
           <div className="jarvis-side-card page-panel side-panel-category-card">
             <div className="jarvis-side-title">
@@ -9310,7 +9466,7 @@ function JarvisConsole() {
                     key={`provider-${provider.id}`}
                     type="button"
                     className={`provider-chip ${selectedProvider === provider.id ? 'active' : ''} ${provider.available ? '' : 'offline'}`}
-                    onClick={() => pinPreferredProvider(provider.id)}
+                    onClick={() => pinPreferredProvider(provider.id, availableProviders)}
                   >
                     <strong>{provider.label}</strong>
                     <span>
@@ -9416,7 +9572,7 @@ function JarvisConsole() {
               <strong>{getSystemGuardLabel(systemGuard.status)}</strong>
             </div>
             <div className="system-links">
-              <Link to="/">Nova Home</Link>
+              <Link to="/settings">Settings</Link>
               <Link to="/memory">Memory Bank</Link>
               <Link to="/prompt-lab">Prompt Lab</Link>
               <Link to="/history">Memory Log</Link>
@@ -9424,6 +9580,7 @@ function JarvisConsole() {
           </div>
           )}
         </aside>
+        ) : null}
       </section>
     </div>
   );

@@ -93,9 +93,10 @@ class TestRuntimeProviderRegistry(unittest.TestCase):
 
     def test_list_status_includes_frontier_catalog_entries(self):
         """Frontier adapters should appear in the provider list even when offline."""
-        registry = RuntimeProviderRegistry()
-        providers = {provider["id"]: provider for provider in registry.list_status()}
+        with patch.dict(os.environ, {"AAIS_NVIDIA_MODEL": ""}, clear=False):
+            registry = RuntimeProviderRegistry()
+            providers = {provider["id"]: provider for provider in registry.list_status()}
         self.assertIn("openai", providers)
         self.assertIn("google", providers)
         self.assertIn("nvidia", providers)
-        self.assertIn("nemotron-3-nano", providers["nvidia"]["model"])
+        self.assertIn("muse-glimmer", providers["nvidia"]["model"])

@@ -4,6 +4,116 @@
   padding: 1.75rem 1.5rem 0;
 }
 
+.jarvis-console--simple {
+  max-width: 880px;
+}
+
+.jarvis-console--simple .jarvis-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.jarvis-console--simple .jarvis-chat-shell {
+  min-height: min(70vh, 42rem);
+}
+
+.jarvis-simple-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  border-radius: 24px;
+}
+
+.jarvis-simple-bar-copy {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.jarvis-simple-bar-copy h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.jarvis-simple-bar-copy p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.jarvis-simple-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.jarvis-model-switcher {
+  padding: 0.85rem 1rem;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.jarvis-model-switcher-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.jarvis-model-switcher-head span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.jarvis-model-switcher-head strong {
+  display: block;
+  font-size: 1rem;
+  margin-top: 0.1rem;
+}
+
+.jarvis-model-switcher-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.jarvis-model-chip {
+  border: 1px solid rgba(92, 231, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.jarvis-model-chip:hover {
+  border-color: rgba(92, 231, 255, 0.35);
+  background: rgba(92, 231, 255, 0.08);
+}
+
+.jarvis-model-chip.active {
+  border-color: rgba(92, 231, 255, 0.55);
+  background: rgba(92, 231, 255, 0.18);
+  color: #effbff;
+}
+
+.jarvis-model-chip.offline {
+  opacity: 0.45;
+}
+
 .jarvis-hero {
   display: grid;
   grid-template-columns: 1.35fr 0.75fr;

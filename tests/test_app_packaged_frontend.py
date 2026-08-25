@@ -22,7 +22,7 @@ class TestPackagedFrontend(unittest.TestCase):
                     response = client.get("/", follow_redirects=False)
 
             self.assertEqual(response.status_code, 307)
-            self.assertEqual(response.headers["location"], app_main.APP_SHELL_BASE_PATH)
+            self.assertEqual(response.headers["location"], f"{app_main.APP_SHELL_BASE_PATH}/jarvis")
 
     def test_packaged_frontend_serves_assets_and_spa_routes(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -40,6 +40,33 @@ class TestPackagedFrontend(unittest.TestCase):
             self.assertIn("console.log('bundle');", asset_response.text)
             self.assertEqual(route_response.status_code, 200)
             self.assertIn("AAIS App", route_response.text)
+
+    def test_packaged_front_half_redirects_to_jarvis_console(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            static_dir = Path(temp_dir)
+            (static_dir / "assets").mkdir()
+            (static_dir / "index.html").write_text("<html><body>AAIS App</body></html>", encoding="utf-8")
+
+            with patch.object(app_main, "STATIC_DIR", static_dir):
+                with TestClient(app_main.app) as client:
+                    app_response = client.get(app_main.APP_SHELL_BASE_PATH, follow_redirects=False)
+                    nova_response = client.get(f"{app_main.APP_SHELL_BASE_PATH}/nova", follow_redirects=False)
+                    console_response = client.get(f"{app_main.APP_SHELL_BASE_PATH}/jarvis")
+
+            self.assertEqual(app_response.status_code, 307)
+            self.assertEqual(app_response.headers["location"], f"{app_main.APP_SHELL_BASE_PATH}/jarvis")
+            self.assertEqual(nova_response.status_code, 307)
+            self.assertEqual(nova_response.headers["location"], f"{app_main.APP_SHELL_BASE_PATH}/jarvis")
+            self.assertEqual(console_response.status_code, 200)
+            self.assertIn("AAIS App", console_response.text)
+
+    def test_spa_api_paths_reach_legacy_chat_routes(self):
+        with TestClient(app_main.app) as client:
+            response = client.get("/api/chat/sessions")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(isinstance(payload, list) or isinstance(payload.get("sessions"), list))
 
 
 if __name__ == "__main__":

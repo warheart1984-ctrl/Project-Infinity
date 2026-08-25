@@ -42,8 +42,11 @@ def _resolve_api_key(spec: FrontierProviderSpec) -> str:
     return ""
 
 
-def _nvidia_extra_body() -> dict[str, Any]:
-    """Nemotron 3 supports optional chain-of-thought via chat template kwargs."""
+def _nvidia_extra_body(model: str | None = None) -> dict[str, Any]:
+    """Optional Nemotron thinking kwargs; skip for non-Nemotron NIM models (e.g. Muse)."""
+    model_id = str(model or "").strip().lower()
+    if model_id and "nemotron" not in model_id:
+        return {}
     if env_flag("AAIS_NVIDIA_ENABLE_THINKING", default=False):
         return {"chat_template_kwargs": {"enable_thinking": True}}
     return {"chat_template_kwargs": {"enable_thinking": False}}
@@ -58,10 +61,27 @@ def _azure_endpoint() -> str:
     return f"{raw}/openai/deployments/{os.getenv('AAIS_AZURE_OPENAI_DEPLOYMENT', 'gpt-4o').strip()}/chat/completions?api-version=2024-08-01-preview"
 
 
-# NVIDIA Nemotron 3 Nano (GTC 2025/2026) — Open NIM + integrate.api.nvidia.com
+# NVIDIA NIM — Muse Glimmer (primary) + Nemotron family via integrate.api.nvidia.com
+_NVIDIA_MUSE_GLIMMER = "meta/muse-glimmer-30b"
 _NVIDIA_NEMOTRON_3_NANO = "nvidia/nemotron-3-nano-30b-a3b"
 
 FRONTIER_PROVIDER_SPECS: tuple[FrontierProviderSpec, ...] = (
+    FrontierProviderSpec(
+        name="god_brain",
+        display_name="God Brain Local — GGUF via llama.cpp",
+        summary="Your local GGUF model served by llama.cpp on 127.0.0.1:8080 (OpenAI-compatible).",
+        api_key_env="GOD_BRAIN_LOCAL_API_KEY",
+        model_env="AAIS_GOD_BRAIN_MODEL",
+        default_model="Qwen2.5-7B-Instruct-Q4_K_M",
+        base_url_env="AAIS_GOD_BRAIN_BASE_URL",
+        default_base_url="http://127.0.0.1:8080/v1/chat/completions",
+        activation_hint=(
+            "Start llama-server with your GGUF (scripts/start-god-brain.sh) and set "
+            "GOD_BRAIN_LOCAL_API_KEY=local in .env."
+        ),
+        frontier_family="local_gguf",
+        model_catalog_note="Any GGUF loaded into llama-server; default Qwen2.5-7B-Instruct-Q4_K_M.",
+    ),
     FrontierProviderSpec(
         name="openai",
         display_name="OpenAI — GPT / o-series",
@@ -175,25 +195,25 @@ FRONTIER_PROVIDER_SPECS: tuple[FrontierProviderSpec, ...] = (
     ),
     FrontierProviderSpec(
         name="nvidia",
-        display_name="NVIDIA — Nemotron 3",
+        display_name="NVIDIA — Muse Glimmer",
         summary=(
-            "NVIDIA Nemotron 3 family (Nano available now; Super/Ultra coming H1 2026) "
-            "via NIM — agentic MoE models built for reasoning, coding, and long context."
+            "NVIDIA NIM OpenAI-compatible chat via integrate.api.nvidia.com. "
+            "Default brain: Meta Muse Glimmer 30B; Nemotron models remain selectable via AAIS_NVIDIA_MODEL."
         ),
         api_key_env="NVIDIA_API_KEY",
         model_env="AAIS_NVIDIA_MODEL",
-        default_model=_NVIDIA_NEMOTRON_3_NANO,
+        default_model=_NVIDIA_MUSE_GLIMMER,
         base_url_env="AAIS_NVIDIA_BASE_URL",
         default_base_url="https://integrate.api.nvidia.com/v1/chat/completions",
         activation_hint=(
-            "Add NVIDIA_API_KEY from build.nvidia.com (or point AAIS_NVIDIA_BASE_URL at your "
-            "local NIM host). Optional: AAIS_NVIDIA_ENABLE_THINKING=1 for Nemotron reasoning traces."
+            "Add NVIDIA_API_KEY from build.nvidia.com. Default model is meta/muse-glimmer-30b "
+            "(override with AAIS_NVIDIA_MODEL). Optional: AAIS_NVIDIA_ENABLE_THINKING=1 for Nemotron traces."
         ),
         alternate_api_key_envs=("NVDA_API_KEY", "NGC_API_KEY"),
-        frontier_family="nvidia_nemotron",
+        frontier_family="nvidia_nim",
         model_catalog_note=(
-            "nemotron-3-nano-30b-a3b (available), nemotron-3-super and nemotron-3-ultra (upcoming); "
-            "Nemotron Coalition developing Nemotron 4 open frontier base."
+            "meta/muse-glimmer-30b (default), nvidia/nemotron-3-nano-30b-a3b, "
+            "nemotron-3-super / ultra (upcoming)."
         ),
     ),
     FrontierProviderSpec(
@@ -239,6 +259,9 @@ FRONTIER_PROVIDER_SPECS: tuple[FrontierProviderSpec, ...] = (
 
 
 PROVIDER_ALIASES: dict[str, str] = {
+    "godbrain": "god_brain",
+    "god_brain_local": "god_brain",
+    "gguf": "god_brain",
     "gpt": "openai",
     "chatgpt": "openai",
     "oai": "openai",
@@ -247,6 +270,9 @@ PROVIDER_ALIASES: dict[str, str] = {
     "nemotron": "nvidia",
     "nvidia_nim": "nvidia",
     "nim": "nvidia",
+    "muse": "nvidia",
+    "glimmer": "nvidia",
+    "muse_glimmer": "nvidia",
     "sonar": "perplexity",
     "kimi": "moonshot",
     "azure": "azure_openai",
@@ -270,7 +296,7 @@ def build_http_adapter(spec: FrontierProviderSpec) -> HttpChatProvider:
     site_url = os.getenv(spec.site_url_env, "").strip()
     extra_body: dict[str, Any] = {}
     if spec.name == "nvidia":
-        extra_body = _nvidia_extra_body()
+        extra_body = _nvidia_extra_body(model)
     config = HttpChatProviderConfig(
         provider_id=spec.name,
         default_model=model,

@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { clearHistoryEntries, deleteHistoryEntry, getHistoryEntries } from '../lib/history';
+import { setPendingJarvisDraft } from '../lib/jarvis';
 import {
   deleteNovaSessionArchive,
   listNovaSessionArchives,
   openNovaSessionArchive,
-  setActiveNovaSessionArchive,
-  setPendingNovaSessionArchive,
 } from '../lib/novaSessionArchive';
 import './History.css';
 
@@ -169,16 +168,21 @@ function History() {
     }
   };
 
-  const handleLoadArchiveIntoNova = () => {
+  const handleLoadArchiveIntoConsole = () => {
     if (!selectedArchive) {
-      toast.error('Unlock or open the archive before loading it into Nova.');
+      toast.error('Unlock or open the archive before loading it into the console.');
       return;
     }
 
-    setActiveNovaSessionArchive(selectedArchive);
-    setPendingNovaSessionArchive(selectedArchive);
-    toast.success('Archive handed off to Nova as document context.');
-    navigate('/nova');
+    const transcript = String(selectedArchive.transcriptText || selectedArchive.excerpt || '').trim();
+    setPendingJarvisDraft({
+      text: transcript
+        ? `Loaded session archive "${selectedArchive.title || 'untitled'}".\n\n${transcript}`
+        : `Loaded session archive "${selectedArchive.title || 'untitled'}".`,
+      source: 'session_archive',
+    });
+    toast.success('Archive handed off to the Jarvis console.');
+    navigate('/jarvis');
   };
 
   const handleDeleteArchive = async () => {
@@ -210,7 +214,7 @@ function History() {
       <div className="page-intro">
         <h1>Session Archive And Operator Log</h1>
         <p>
-          Nova session archives are opt-in, local-only, and loaded back as document context.
+          Session archives are opt-in, local-only, and can be handed back to the Jarvis console.
           Operator Log stays here too for direct Jarvis chats and subsystem runs from this machine.
         </p>
       </div>
@@ -237,7 +241,7 @@ function History() {
           <section className="archive-list-panel">
             <div className="archive-panel-head">
               <div>
-                <h2>Saved Nova sessions</h2>
+                <h2>Saved sessions</h2>
                 <p>Stored only on this device. Loading them does not turn them into memory.</p>
               </div>
               <span className="item-type">LOCAL</span>
@@ -248,7 +252,7 @@ function History() {
             ) : archiveEntries.length === 0 ? (
               <div className="empty-state">
                 <p>No session archive yet.</p>
-                <p>Use Save Session on Nova home when you want a reopenable local session record.</p>
+                <p>Save a session from the Jarvis console when you want a reopenable local record.</p>
               </div>
             ) : (
               <div className="archive-list">
@@ -301,7 +305,7 @@ function History() {
                   <div className="archive-unlock">
                     <p>
                       This archive keeps its transcript behind a passphrase. Unlock it locally to
-                      inspect the saved session or load it into Nova.
+                      inspect the saved session or load it into the console.
                     </p>
                     <input
                       type="password"
@@ -338,10 +342,10 @@ function History() {
                   <button
                     type="button"
                     className="nova-button nova-button--primary"
-                    onClick={handleLoadArchiveIntoNova}
+                    onClick={handleLoadArchiveIntoConsole}
                     disabled={!selectedArchive || archiveBusy}
                   >
-                    Load Into Nova
+                    Load Into Console
                   </button>
                   <button
                     type="button"

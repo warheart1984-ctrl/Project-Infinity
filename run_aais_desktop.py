@@ -84,7 +84,7 @@ def main() -> int:
     data_dir = os.getenv("JARVIS_DATA_DIR") or str(_default_data_dir(root))
     host = os.getenv("AAIS_HOST", "127.0.0.1")
     port = int(os.getenv("AAIS_PORT", "8000"))
-    app_url = f"http://{host}:{port}/app"
+    app_url = f"http://{host}:{port}/app/jarvis"
     health_url = f"http://{host}:{port}/health"
 
     server_thread = threading.Thread(
