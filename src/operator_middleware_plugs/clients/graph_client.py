@@ -162,11 +162,11 @@ def graph_workbook_stub(
     *,
     transport: httpx.BaseTransport | None = None,
 ) -> dict[str, Any]:
-    """Backward-compatible alias → full Excel session flow. """
-    from src.operator_middleware_plugs.clients.excel_workbook_client import run_workbook_session_flow
-
-    return run_workbook_session_flow(
+    """Workbook path stub — full Excel API is heavy; document for later."""
+    safe = "".join(c if c.isalnum() or c in "._-" else "_" for c in name)[:80] or "export"
+    return call_graph(
         token,
-        item_path=f"/AAIS/exports/{name}.xlsx",
+        f"me/drive/root:/AAIS/exports/{safe}:/workbook",
+        method="GET",
         transport=transport,
     )

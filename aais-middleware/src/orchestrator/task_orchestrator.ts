@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto";
 import { AaisTasksAdapter } from "../aais_tasks/aais_tasks_adapter.js";
 import type { AaisTask } from "../aais_tasks/aais_task_model.js";
-import { normalizeRequestAsync } from "../intent_bus/intent_normalizer.js";
+import { normalizeRequest } from "../intent_bus/intent_normalizer.js";
 import type {
   AdapterResult,
   ParsedTask,
@@ -19,7 +19,6 @@ import { evaluatePolicy } from "../policy_core/policy_engine.js";
 import { deriveRiskLevel, riskProfileSnapshot } from "../policy_core/risk_profile.js";
 import { CrmAdapter } from "../provider_adapters/crm_adapter.js";
 import { GraphTasksAdapter } from "../provider_adapters/graph_tasks_adapter.js";
-import { defaultSkillStore } from "../provider_adapters/skill_store.js";
 import { eventLogger } from "../trace_store/event_logger.js";
 import { evidenceStore } from "../trace_store/evidence_store.js";
 import type { OrchestratorResult, ReplayTrace } from "../trace_store/interfaces.js";
@@ -31,12 +30,7 @@ import {
   type AdaptiveEngineDecision,
 } from "./adaptive_engine_hook.js";
 import { runImageGenLane, runMandalaLane } from "./picture_pipeline.js";
-import {
-  runClaudeWriterLane,
-  runClaudeWriterLaneLive,
-  runGptToolsLane,
-  runGptToolsLaneLive,
-} from "./skill_orchestrator.js";
+import { runClaudeWriterLane, runGptToolsLane } from "./skill_orchestrator.js";
 import { runTaskLane } from "./task_lane.js";
 
 export { runTaskLane } from "./task_lane.js";
@@ -321,8 +315,7 @@ export async function runRequest(
     graph?: GraphTasksAdapter;
   },
 ): Promise<OrchestratorResult> {
-  const request: TaskSkillsRequest & { embeddingMeta?: Record<string, unknown> } =
-    await normalizeRequestAsync(input);
+  const request: TaskSkillsRequest = normalizeRequest(input);
   let forceDemo = request.forceDemo !== false;
   const riskLevel = deriveRiskLevel(request);
   const policy = evaluatePolicy(request);
@@ -373,18 +366,13 @@ export async function runRequest(
     type: request.intent.type,
     confidence: request.intent.confidence,
     tags: request.intent.tags,
-    embedding: request.embeddingMeta || { backend: "regex" },
   });
   evidenceStore.seal(
     {
       requestId: request.requestId,
       provider: "intent_bus",
       justification: `Intent classified as ${request.intent.type}`,
-      metadata: {
-        tags: request.intent.tags,
-        confidence: request.intent.confidence,
-        embedding: request.embeddingMeta || null,
-      },
+      metadata: { tags: request.intent.tags, confidence: request.intent.confidence },
     },
     trace,
   );
@@ -519,17 +507,11 @@ export async function runRequest(
   }
 
   if (request.skills?.length || approved.has("gpt_tools") || policy.blockedProviders.includes("gpt_tools")) {
-    const result = forceDemo
-      ? runGptToolsLane(request.skills ?? [], {
-          approved: approved.has("gpt_tools"),
-          forceDemo,
-          apiKey: process.env.OPENAI_API_KEY,
-        })
-      : await runGptToolsLaneLive(request.skills ?? [], {
-          approved: approved.has("gpt_tools"),
-          forceDemo,
-          apiKey: process.env.OPENAI_API_KEY,
-        });
+    const result = runGptToolsLane(request.skills ?? [], {
+      approved: approved.has("gpt_tools"),
+      forceDemo,
+      apiKey: process.env.OPENAI_API_KEY,
+    });
     recordLane(
       eventLogger,
       evidenceStore,
@@ -555,17 +537,11 @@ export async function runRequest(
     approved.has("claude_writer") ||
     policy.blockedProviders.includes("claude_writer")
   ) {
-    const result = forceDemo
-      ? runClaudeWriterLane(request.skills ?? [], {
-          approved: approved.has("claude_writer"),
-          forceDemo,
-          apiKey: process.env.ANTHROPIC_API_KEY,
-        })
-      : await runClaudeWriterLaneLive(request.skills ?? [], {
-          approved: approved.has("claude_writer"),
-          forceDemo,
-          apiKey: process.env.ANTHROPIC_API_KEY,
-        });
+    const result = runClaudeWriterLane(request.skills ?? [], {
+      approved: approved.has("claude_writer"),
+      forceDemo,
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
     recordLane(
       eventLogger,
       evidenceStore,
@@ -585,12 +561,6 @@ export async function runRequest(
       laneResults.push("claude_writer");
     }
   }
-
-  // Skill-store catalog always available for evidence/console
-  decisionEvents.push({
-    event: "skill_store_snapshot",
-    count: defaultSkillStore.list().length,
-  });
 
   const wantPictures =
     (request.pictures?.length ?? 0) > 0 ||
@@ -704,10 +674,9 @@ export function catalogStatus(): Record<string, unknown> {
       { provider: "mandala", label: "Mandala Hook", authEnv: null },
     ],
     notClaimed: [
+      "ChatGPT skill store parity",
       "Claude Computer Use",
       "Silent cross-provider fallback",
-      "Unsigned third-party skill marketplace install",
     ],
-    skillStore: defaultSkillStore.catalogStatus(),
   };
 }

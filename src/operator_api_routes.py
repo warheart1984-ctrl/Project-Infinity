@@ -359,25 +359,6 @@ def register_operator_api_routes(app: Flask) -> None:
             }
         ), 200
 
-    @app.route("/api/operator/skill-store", methods=["GET"])
-    def operator_skill_store_catalog():
-        from src.operator_middleware_plugs.skill_store import skill_store_registry
-
-        return jsonify({"ok": True, **skill_store_registry.catalog()}), 200
-
-    @app.route("/api/operator/skill-store/<skill_id>/invoke", methods=["POST"])
-    def operator_skill_store_invoke(skill_id: str):
-        from src.operator_middleware_plugs.skill_store import skill_store_registry
-
-        body: dict[str, Any] = request.get_json(silent=True) or {}
-        result = skill_store_registry.invoke(
-            skill_id,
-            args=dict(body.get("args") or body),
-            operator_approved=bool(body.get("operator_approved", True)),
-        )
-        status = 200 if result.get("ok") else 400
-        return jsonify(result), status
-
     @app.route("/api/operator/organs", methods=["GET"])
     def operator_organs_list():
         from src.workflow_family_readiness import list_families_with_readiness

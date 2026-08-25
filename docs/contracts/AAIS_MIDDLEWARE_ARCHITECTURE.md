@@ -40,7 +40,7 @@ Engineering names in TypeScript match the operator blueprint. Mythic labels rema
 | TS middleware (canonical) | `aais-middleware/` |
 | Python AAIS host (thin) | `src/constitutional_task_bus/dispatch.py` → Node CLI `aais-middleware/bin/dispatch.mjs` |
 | HTTP | `POST /api/jarvis/task-bus/dispatch`, `GET /api/jarvis/task-bus/status` |
-| React console | `/task-bus` (+ `/middleware`) — four panels; **`/sovereign`** (+ `/assistant`) — one-screen Sovereign Assistant |
+| React console | `/task-bus` (+ `/middleware`) — four panels |
 | Schema | `schemas/task_skills_request.v1.json` |
 
 ## 5. Provider lanes
@@ -56,16 +56,11 @@ Engineering names in TypeScript match the operator blueprint. Mythic labels rema
 | Mandala | `MandalaAdapter` | plan hook → adaptive music |
 | Gmail email | `GoogleGmailMiddlewarePlug` | OAuth store / `AAIS_GMAIL_ACCESS_TOKEN` |
 | Calendar | `native.calendar.schedule` | Graph token / OAuth |
-| Spreadsheet | `ExcelWorkbookSessionClient` / `middleware.microsoft.spreadsheet` | Graph token — createSession / range R/W / close |
-| Skill Store | `SkillStoreRegistry` | local catalog under `.runtime/skill_store/` |
+| Spreadsheet | `native.spreadsheet.export` | local demo; Graph workbook stub optional |
 
 **Multi-provider create:** `orchestrateTaskCreation` always writes an AAIS task, then conditionally CRM + Graph with evidence for every lane (including skips). Adaptive `analyze` runs **before** provider selection.
 
-**Embeddings classifier:** `classifyIntentWithEmbeddings` (local hash or OpenAI) runs in `normalizeRequestAsync` before policy; falls back to regex when disabled/unavailable.
-
-**Graph sync conflicts:** `AAIS_GRAPH_SYNC_CONFLICT_POLICY=prefer_aais|prefer_graph|report` — conflicts sealed in sync result evidence (no silent overwrite on `report`).
-
-Operator UI: `/operator/plugins` → **middleware** tab (Connect Gmail / Microsoft 365, AAIS Tasks panel); `/operator/oauth/callback`; `/api/operator/skill-store`; `/task-bus`.
+Operator UI: `/operator/plugins` → **middleware** tab (Connect Gmail / Microsoft 365, AAIS Tasks panel); `/operator/oauth/callback`; `/task-bus`.
 
 
 ## 6. Policy DSL
@@ -91,30 +86,11 @@ Operator UI: `/operator/plugins` → **middleware** tab (Connect Gmail / Microso
 
 Open: `/task-bus` (alias `/middleware`).
 
-### Sovereign Assistant (operator chat shell)
-
-Open: **`/sovereign`** (alias `/assistant`).
-
-Deep links (React Router):
-
-| Path | Panel |
-|------|--------|
-| `/sovereign` | Calm chat + task outcomes |
-| `/sovereign/middleware` | Provider trust / health |
-| `/sovereign/plugins` | Skill store |
-| `/sovereign/settings` | Demo/live, conflict policy, socket |
-| `/sovereign/crm` | CRM artifact focus |
-| `/sovereign/telemetry` | Expanded Provider Lanes + Replay |
-| `/sovereign/scratch` | Scratch capture inbox (mention → intent → authorize) |
-
-Doctrine: chat = conversation; Task-Bus = actions (`useTaskBus`); middleware = trust; WebSocket = optional telemetry. **Cognitive-load adaptability:** calm Focus view + “Where was I?” posture + scratch capture; stimulation prefs (density/animation/visual/notifications) — not a clinical mode. Intent ladder types: `mentioned` \| `intended` \| `authorized`.
-
-**Manual path:** `/sovereign` — sample prompt in input. Scratch: `/sovereign/scratch` or `/capture …`.
-
-Types: `frontend/src/types/aais.ts` · prefs: `sovereignPrefs.ts` · posture: `sessionPosture.ts`.
-
 ## Deferred (honest)
 
+- Full Excel workbook session API (stub path only)
+- Real embeddings-based classifier
+- Live Chat Completions / Claude Messages tool loops
 - Claude Computer Use
-- Unsigned third-party skill marketplace install
-- Bidirectional Graph sync UI conflict resolver (API/policy shipped; Sovereign Assistant has a thin prefer_aais|prefer_graph|report picker)
+- ChatGPT / Claude skill store parity
+- Bidirectional Graph sync polish / conflict resolution

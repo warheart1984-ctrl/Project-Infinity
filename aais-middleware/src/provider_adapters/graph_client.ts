@@ -190,14 +190,21 @@ export async function graphSendMail(
 }
 
 /**
- * Spreadsheets → full Excel workbook session flow (create/read/write/close).
- * @see excel_workbook_client.ts
+ * Spreadsheets → workbook path stub.
+ * Full Excel workbook API is heavy; use drive item workbook session when wired.
+ * Path: me/drive/root:/AAIS/exports/{name}:/workbook
  */
-export {
-  createWorkbookSession,
-  getWorkbookRange,
-  updateWorkbookRange,
-  closeWorkbookSession,
-  runWorkbookSessionFlow,
-  graphWorkbookStub,
-} from "./excel_workbook_client.js";
+export async function graphWorkbookStub(
+  token: string | undefined,
+  name: string,
+  opts?: { fetchImpl?: FetchLike },
+): Promise<GraphCallResult> {
+  const safe = name.replace(/[^\w.-]+/g, "_").slice(0, 80) || "export";
+  return callGraph(
+    token,
+    `me/drive/root:/AAIS/exports/${safe}:/workbook`,
+    "GET",
+    undefined,
+    { fetchImpl: opts?.fetchImpl },
+  );
+}
