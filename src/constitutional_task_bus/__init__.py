@@ -10,6 +10,9 @@ from src.constitutional_task_bus.dispatch import (
     get_cached_trace,
     task_bus_status,
 )
+from src.constitutional_task_bus.bus import ConstitutionalTaskBus
+from src.constitutional_task_bus.intent_parser import TaskBusIntentParser
+from src.constitutional_task_bus.policy_engine import TaskBusPolicyEngine
 
 # Capability bridge adapter (Python) still available for jarvis tools
 try:
@@ -25,4 +28,7 @@ __all__ = [
     "get_cached_trace",
     "TaskBusCapability",
     "TASK_BUS_COMPONENT_ID",
+    "ConstitutionalTaskBus",
+    "TaskBusIntentParser",
+    "TaskBusPolicyEngine",
 ]
