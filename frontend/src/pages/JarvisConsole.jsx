@@ -241,6 +241,30 @@ const cockpitToolLinks = [
     to: '/image-analyzer',
   },
   {
+    id: 'holo-rt4d',
+    label: 'HoloRT4D Spatial Vision',
+    detail: 'Scrub ticks and watch visibility rays across the operator grid.',
+    to: '/holo-rt4d',
+  },
+  {
+    id: 'adaptive-score',
+    label: 'Adaptive Score',
+    detail: 'Beatbox compose + Speakers mix with Mandala plan preview.',
+    to: '/adaptive-music',
+  },
+  {
+    id: 'beatbox-speakers',
+    label: 'Beatbox / Speakers',
+    detail: 'Score stems and Speakers ducking lane — same path as Adaptive Score.',
+    to: '/adaptive-music',
+  },
+  {
+    id: 'sovereign-sound',
+    label: 'Sovereign Sound Loop',
+    detail: 'Scene → score → mix → Mandala → optional Holo probe.',
+    to: '/adaptive-music?panel=sovereign-sound',
+  },
+  {
     id: 'prompt',
     label: 'Prompt Lab',
     detail: 'Draft, generate, and refine prompt-driven output.',
@@ -263,6 +287,18 @@ const cockpitToolLinks = [
     label: 'Workflow Builder',
     detail: 'Wire approvals, routing, and automation steps.',
     to: '/workflows',
+  },
+  {
+    id: 'task_bus',
+    label: 'Task & Skills Bus',
+    detail: 'Plan / write / code / pictures under one governed trace.',
+    to: '/task-bus',
+  },
+  {
+    id: 'sovereign_assistant',
+    label: 'Sovereign Assistant',
+    detail: 'One-screen chat over the task bus — cards, lanes, artifacts.',
+    to: '/sovereign',
   },
 ];
 
@@ -553,6 +589,197 @@ function buildCapabilityInputFields(capabilityId, actionId) {
     ];
   }
 
+  if (
+    normalizedCapabilityId === 'holo_rt4d'
+    || normalizedCapabilityId === 'holo_rt4d_spatial_vision'
+    || normalizedCapabilityId === 'spatial_vision'
+  ) {
+    return [
+      normalizeCapabilityField({
+        id: 'space_id',
+        label: 'Space Id',
+        type: 'text',
+        default: 'holo_rt4d_demo',
+        placeholder: 'holo_rt4d_demo',
+      }),
+      normalizeCapabilityField({
+        id: 'observer',
+        label: 'Observer',
+        type: 'text',
+        default: 'observer',
+        placeholder: 'observer node or entity',
+      }),
+      normalizeCapabilityField({
+        id: 'targets',
+        label: 'Targets',
+        type: 'text',
+        placeholder: 'scout, beacon, north (blank = auto)',
+      }),
+      normalizeCapabilityField({
+        id: 'tick',
+        label: 'Tick (4D)',
+        type: 'text',
+        default: '0',
+        placeholder: '0',
+      }),
+      normalizeCapabilityField({
+        id: 'seed_demo',
+        label: 'Seed Demo Space',
+        type: 'boolean',
+        default: true,
+      }),
+    ];
+  }
+
+  if (
+    normalizedCapabilityId === 'adaptive_music'
+    || normalizedCapabilityId === 'adaptive_music_compose'
+    || normalizedCapabilityId === 'beatbox'
+    || normalizedCapabilityId === 'beatbox_score'
+  ) {
+    return [
+      normalizeCapabilityField({
+        id: 'mood',
+        label: 'Mood',
+        type: 'text',
+        default: 'focused',
+        placeholder: 'calm | focused | intense | happy',
+      }),
+      normalizeCapabilityField({
+        id: 'energy',
+        label: 'Energy',
+        type: 'text',
+        default: '62',
+      }),
+      normalizeCapabilityField({
+        id: 'tension',
+        label: 'Tension',
+        type: 'text',
+        default: '40',
+      }),
+      normalizeCapabilityField({
+        id: 'duration_sec',
+        label: 'Duration (sec)',
+        type: 'text',
+        default: '6',
+      }),
+      normalizeCapabilityField({
+        id: 'description',
+        label: 'Scene / Intent',
+        type: 'textarea',
+        placeholder: 'Narrative pacing or operator intent',
+      }),
+      normalizeCapabilityField({
+        id: 'include_mandala_sync',
+        label: 'Include Mandala Plan',
+        type: 'boolean',
+        default: true,
+      }),
+    ];
+  }
+
+  if (normalizedCapabilityId === 'speakers' || normalizedCapabilityId === 'speakers_mix') {
+    return [
+      normalizeCapabilityField({
+        id: 'music_stem_path',
+        label: 'Music Stem Path',
+        type: 'text',
+        placeholder: 'from Beatbox score receipt',
+      }),
+      normalizeCapabilityField({
+        id: 'voice_stem_path',
+        label: 'Voice Stem Path',
+        type: 'text',
+      }),
+      normalizeCapabilityField({
+        id: 'profile_id',
+        label: 'Voice Profile Id',
+        type: 'text',
+        placeholder: 'optional HumanVoice constraints',
+      }),
+    ];
+  }
+
+  if (normalizedCapabilityId === 'mandala' || normalizedCapabilityId === 'mandala_visual_sync') {
+    return [
+      normalizeCapabilityField({
+        id: 'mood',
+        label: 'Mood',
+        type: 'text',
+        default: 'focused',
+      }),
+      normalizeCapabilityField({
+        id: 'bpm',
+        label: 'BPM',
+        type: 'text',
+        default: '120',
+      }),
+      normalizeCapabilityField({
+        id: 'energy',
+        label: 'Energy',
+        type: 'text',
+        default: '62',
+      }),
+      normalizeCapabilityField({
+        id: 'tension',
+        label: 'Tension',
+        type: 'text',
+        default: '40',
+      }),
+    ];
+  }
+
+  if (
+    normalizedCapabilityId === 'story_forge'
+    || normalizedCapabilityId === 'story_forge_audio'
+  ) {
+    return [
+      normalizeCapabilityField({
+        id: 'rendered_video_path',
+        label: 'Rendered Video Path',
+        type: 'text',
+        required: true,
+        placeholder: '/path/to/rendered.mp4',
+      }),
+      normalizeCapabilityField({
+        id: 'dialogue_lines',
+        label: 'Dialogue Lines',
+        type: 'textarea',
+      }),
+      normalizeCapabilityField({
+        id: 'narration_lines',
+        label: 'Narration Lines',
+        type: 'textarea',
+      }),
+    ];
+  }
+
+  if (
+    normalizedCapabilityId === 'human_voice_speakers'
+    || normalizedCapabilityId === 'human_voice_speakers_pipeline'
+  ) {
+    return [
+      normalizeCapabilityField({
+        id: 'notes_text',
+        label: 'Voice Notes',
+        type: 'textarea',
+        placeholder: 'Operator notes describing the human voice profile',
+      }),
+      normalizeCapabilityField({
+        id: 'auto_signoff',
+        label: 'Auto Signoff',
+        type: 'boolean',
+        default: true,
+      }),
+      normalizeCapabilityField({
+        id: 'signoff_by',
+        label: 'Signoff By',
+        type: 'text',
+        default: 'operator',
+      }),
+    ];
+  }
+
   if (normalizedCapabilityId === 'v9_core' || normalizedCapabilityId === 'v10_core') {
     return [
       normalizeCapabilityField({
@@ -785,6 +1012,55 @@ const DEFAULT_CAPABILITY_BRIDGE_SNAPSHOT = buildCapabilityBridgeSnapshot([
     summary: 'Run governed line-of-sight, path, distance, and spatial-state checks.',
     module: 'spatial',
     actions: [{ id: 'reason', tool: 'spatial_reason', providers: ['deterministic'], modes: ['strict', 'assist', 'experimental'] }],
+  },
+  {
+    id: 'holo_rt4d',
+    label: 'HoloRT4D Spatial Vision',
+    summary: 'Probe governed 4D spatial vision: observer visibility, occlusion, and depth order.',
+    module: 'holo_rt4d_spatial_vision',
+    actions: [{ id: 'probe', tool: 'holo_rt4d_spatial_vision', providers: ['deterministic'], modes: ['strict', 'assist', 'experimental'] }],
+  },
+  {
+    id: 'adaptive_music',
+    label: 'Adaptive Music Compose',
+    summary: 'Compose Beatbox score and Speakers mix; optional Mandala visual plan.',
+    module: 'adaptive_music_compose',
+    actions: [{ id: 'compose', tool: 'adaptive_music_compose', providers: ['deterministic'], modes: ['strict', 'assist', 'experimental'] }],
+  },
+  {
+    id: 'beatbox',
+    label: 'Beatbox Score',
+    summary: 'Compose a deterministic Beatbox arrangement from scene axes.',
+    module: 'beatbox_score',
+    actions: [{ id: 'score', tool: 'beatbox_score', providers: ['deterministic'], modes: ['strict', 'assist', 'experimental'] }],
+  },
+  {
+    id: 'speakers',
+    label: 'Speakers Mix',
+    summary: 'Duck and render a Speakers final mix from Beatbox stems.',
+    module: 'speakers_mix',
+    actions: [{ id: 'mix', tool: 'speakers_mix', providers: ['deterministic'], modes: ['strict', 'assist', 'experimental'] }],
+  },
+  {
+    id: 'mandala',
+    label: 'Mandala Visual Sync',
+    summary: 'Derive a plan-only Mandala visual adaptation from score/scene axes.',
+    module: 'mandala_visual_sync',
+    actions: [{ id: 'sync', tool: 'mandala_visual_sync', providers: ['deterministic'], modes: ['strict', 'assist', 'experimental'] }],
+  },
+  {
+    id: 'story_forge',
+    label: 'Story Forge Audio',
+    summary: 'Fail-closed Story Forge → Beatbox → Speakers movie audio with receipts.',
+    module: 'story_forge_audio',
+    actions: [{ id: 'run', tool: 'story_forge_audio', providers: ['deterministic'], modes: ['strict', 'assist', 'experimental'] }],
+  },
+  {
+    id: 'human_voice_speakers',
+    label: 'Voice → Speakers Handoff',
+    summary: 'Guided extract → signoff → Speakers constraints for mix-ready voice profiles.',
+    module: 'human_voice_speakers_pipeline',
+    actions: [{ id: 'run', tool: 'human_voice_speakers_pipeline', providers: ['deterministic'], modes: ['strict', 'assist', 'experimental'] }],
   },
   {
     id: 'v9_core',
@@ -2561,6 +2837,213 @@ function ToolResultCard({
             <p>{result.reason}</p>
           </div>
         ) : null}
+        {renderCapabilityMeta()}
+        <UlTraceBlock
+          ulTrace={toolResult?.ul_trace}
+          ulSubstrate={toolResult?.ul_substrate}
+        />
+      </div>
+    );
+  }
+
+  if (toolResult.type === 'holo_rt4d_spatial_vision') {
+    const result = toolResult.result || {};
+    const depthOrder = Array.isArray(result.depth_order) ? result.depth_order.join(' → ') : '';
+    const visibleIds = Array.isArray(result.visible)
+      ? result.visible.map((item) => item.id || item).join(', ')
+      : '';
+    const occludedIds = Array.isArray(result.occluded)
+      ? result.occluded.map((item) => item.id || item).join(', ')
+      : '';
+    const consolePath = result.console_path || `/holo-rt4d?space_id=${encodeURIComponent(result.space_id || 'holo_rt4d_demo')}&observer=${encodeURIComponent(result.observer || 'observer')}&tick=${encodeURIComponent(result.tick ?? 0)}`;
+
+    return (
+      <div className={`jarvis-inline-card ${toolResult.status === 'failed' ? 'action-failed' : ''}`}>
+        <div className="jarvis-inline-card-header">
+          <span>HoloRT4D Spatial Vision</span>
+          <strong>probe</strong>
+        </div>
+        <p>{result.summary || toolResult.summary || 'Spatial vision probe completed.'}</p>
+        <div className="jarvis-inline-meta">
+          <span className="inline-meta-chip">{result.space_id || 'unnamed space'}</span>
+          <span className="inline-meta-chip">{result.observer || 'observer'}</span>
+          <span className="inline-meta-chip">tick {Number.isFinite(Number(result.tick)) ? result.tick : 0}</span>
+          <span className={`inline-meta-chip ${toolResult.status === 'failed' ? 'danger' : 'success'}`}>
+            {toolResult.status || 'completed'}
+          </span>
+          <span className="inline-meta-chip success">{result.visible_count ?? 0} visible</span>
+          <span className="inline-meta-chip warning">{result.occluded_count ?? 0} occluded</span>
+          {result.space_binding ? (
+            <span className="inline-meta-chip">{result.space_binding}</span>
+          ) : null}
+        </div>
+        {visibleIds ? (
+          <div className="corrigibility-inline-block">
+            <strong>Visible</strong>
+            <p>{visibleIds}</p>
+          </div>
+        ) : null}
+        {occludedIds ? (
+          <div className="corrigibility-inline-block">
+            <strong>Occluded</strong>
+            <p>{occludedIds}</p>
+          </div>
+        ) : null}
+        {depthOrder ? (
+          <div className="corrigibility-inline-block">
+            <strong>Depth Order</strong>
+            <p>{depthOrder}</p>
+          </div>
+        ) : null}
+        <div className="jarvis-inline-actions">
+          <Link to={consolePath} className="inline-card-action">
+            <FiArrowUpRight />
+            Open HoloRT4D map
+          </Link>
+          <Link to="/adaptive-music?panel=sovereign-sound" className="inline-card-action">
+            <FiArrowUpRight />
+            Couple into Score
+          </Link>
+        </div>
+        {renderCapabilityMeta()}
+        <UlTraceBlock
+          ulTrace={toolResult?.ul_trace}
+          ulSubstrate={toolResult?.ul_substrate}
+        />
+      </div>
+    );
+  }
+
+  if (
+    toolResult.type === 'adaptive_music_compose'
+    || toolResult.type === 'beatbox_score'
+    || toolResult.type === 'speakers_mix'
+  ) {
+    const result = toolResult.result || {};
+    const consolePath = result.console_path || '/adaptive-music';
+    const mixSha = String(result.mix_sha256 || '').slice(0, 16);
+    const title = toolResult.type === 'beatbox_score'
+      ? 'Beatbox Score'
+      : toolResult.type === 'speakers_mix'
+        ? 'Speakers Mix'
+        : 'Adaptive Music Compose';
+
+    return (
+      <div className={`jarvis-inline-card ${toolResult.status === 'failed' ? 'action-failed' : ''}`}>
+        <div className="jarvis-inline-card-header">
+          <span>{title}</span>
+          <strong>{result.mood || result.engine || toolResult.type}</strong>
+        </div>
+        <p>
+          {result.summary
+            || `${result.mood || 'score'} · ${result.bpm || '—'} BPM · ${Number(result.duration_sec || 0).toFixed?.(1) || result.duration_sec || '—'}s`}
+        </p>
+        <div className="jarvis-inline-meta">
+          <span className={`inline-meta-chip ${toolResult.status === 'failed' ? 'danger' : 'success'}`}>
+            {toolResult.status || 'completed'}
+          </span>
+          {result.session_id ? <span className="inline-meta-chip">{result.session_id}</span> : null}
+          {mixSha ? <span className="inline-meta-chip">mix {mixSha}…</span> : null}
+          {result.mandala_visual_plan?.plan_id ? (
+            <span className="inline-meta-chip">{result.mandala_visual_plan.plan_id}</span>
+          ) : null}
+        </div>
+        <div className="jarvis-inline-actions">
+          <Link to={consolePath} className="inline-card-action">
+            <FiArrowUpRight />
+            Open Adaptive Score
+          </Link>
+        </div>
+        {renderCapabilityMeta()}
+        <UlTraceBlock
+          ulTrace={toolResult?.ul_trace}
+          ulSubstrate={toolResult?.ul_substrate}
+        />
+      </div>
+    );
+  }
+
+  if (toolResult.type === 'mandala_visual_sync') {
+    const result = toolResult.result || {};
+    return (
+      <div className={`jarvis-inline-card ${toolResult.status === 'failed' ? 'action-failed' : ''}`}>
+        <div className="jarvis-inline-card-header">
+          <span>Mandala Visual Sync</span>
+          <strong>{result.plan_id || 'plan'}</strong>
+        </div>
+        <p>
+          {result.mood || 'mood'} · {result.bpm || '—'} BPM · plan-only
+          {result.consumer_seam?.owns_pixels ? '' : ' (no pixels)'}
+        </p>
+        <div className="jarvis-inline-actions">
+          <Link to="/adaptive-music" className="inline-card-action">
+            <FiArrowUpRight />
+            Open Mandala preview
+          </Link>
+        </div>
+        {renderCapabilityMeta()}
+        <UlTraceBlock
+          ulTrace={toolResult?.ul_trace}
+          ulSubstrate={toolResult?.ul_substrate}
+        />
+      </div>
+    );
+  }
+
+  if (toolResult.type === 'story_forge_audio') {
+    const result = toolResult.result || {};
+    const receipt = result.receipt || {};
+    return (
+      <div className={`jarvis-inline-card ${toolResult.status === 'failed' || result.status === 'rejected' ? 'action-failed' : ''}`}>
+        <div className="jarvis-inline-card-header">
+          <span>Story Forge Audio</span>
+          <strong>{result.status || toolResult.status || 'run'}</strong>
+        </div>
+        <p>{result.message || 'Story Forge audio pipeline finished.'}</p>
+        <div className="jarvis-inline-meta">
+          {receipt.session_id || result.session_id ? (
+            <span className="inline-meta-chip">{receipt.session_id || result.session_id}</span>
+          ) : null}
+          {receipt.error_type || result.error_type ? (
+            <span className="inline-meta-chip danger">{receipt.error_type || result.error_type}</span>
+          ) : (
+            <span className="inline-meta-chip success">receipt</span>
+          )}
+        </div>
+        <div className="jarvis-inline-actions">
+          <Link to={result.console_path || '/adaptive-music?panel=story-forge'} className="inline-card-action">
+            <FiArrowUpRight />
+            Open beside Score tools
+          </Link>
+        </div>
+        {renderCapabilityMeta()}
+        <UlTraceBlock
+          ulTrace={toolResult?.ul_trace}
+          ulSubstrate={toolResult?.ul_substrate}
+        />
+      </div>
+    );
+  }
+
+  if (toolResult.type === 'human_voice_speakers_pipeline') {
+    const result = toolResult.result || {};
+    return (
+      <div className={`jarvis-inline-card ${toolResult.status === 'failed' || !result.ok ? 'action-failed' : ''}`}>
+        <div className="jarvis-inline-card-header">
+          <span>Voice → Speakers</span>
+          <strong>{result.status || 'pipeline'}</strong>
+        </div>
+        <p>
+          {result.profile_id
+            ? `Speakers-ready profile ${result.profile_id}`
+            : (result.message || 'Voice pipeline finished.')}
+        </p>
+        <div className="jarvis-inline-actions">
+          <Link to={result.console_path || '/adaptive-music?panel=voice-mix'} className="inline-card-action">
+            <FiArrowUpRight />
+            Open Voice → Mix
+          </Link>
+        </div>
         {renderCapabilityMeta()}
         <UlTraceBlock
           ulTrace={toolResult?.ul_trace}
@@ -9574,6 +10057,11 @@ function JarvisConsole() {
             <div className="system-links">
               <Link to="/settings">Settings</Link>
               <Link to="/memory">Memory Bank</Link>
+              <Link to="/model-library">Model Library</Link>
+              <Link to="/image-generator">Image</Link>
+              <Link to="/audio-processor">Audio</Link>
+              <Link to="/adaptive-music">Adaptive Score</Link>
+              <Link to="/holo-rt4d">HoloRT4D</Link>
               <Link to="/prompt-lab">Prompt Lab</Link>
               <Link to="/history">Memory Log</Link>
             </div>

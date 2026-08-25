@@ -8,7 +8,11 @@ export function getPlatformApiBaseUrl() {
   if (typeof window !== 'undefined' && window.location?.origin) {
     return `${window.location.origin.replace(/\/+$/, '')}/platform-api`;
   }
-  return 'http://127.0.0.1:8000';
+  // Dev-only fallback — never bake localhost into production bundles as the default path
+  if (import.meta.env?.DEV) {
+    return 'http://127.0.0.1:8000';
+  }
+  return '';
 }
 
 export function getPlatformApiKey() {

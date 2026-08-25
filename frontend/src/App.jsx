@@ -25,6 +25,8 @@ const TextGenerator = lazy(() => import('./pages/TextGenerator'));
 const ImageAnalyzer = lazy(() => import('./pages/ImageAnalyzer'));
 const ImageGenerator = lazy(() => import('./pages/ImageGenerator'));
 const AudioProcessor = lazy(() => import('./pages/AudioProcessor'));
+const AdaptiveMusic = lazy(() => import('./pages/AdaptiveMusic'));
+const HoloRt4dSpatialVision = lazy(() => import('./pages/HoloRt4dSpatialVision'));
 const ModelLibrary = lazy(() => import('./pages/ModelLibrary'));
 const BatchProcessor = lazy(() => import('./pages/BatchProcessor'));
 const History = lazy(() => import('./pages/History'));
@@ -39,6 +41,9 @@ const WorkflowApprovals = lazy(() => import('./pages/WorkflowApprovals'));
 const WorkflowTemplates = lazy(() => import('./pages/WorkflowTemplates'));
 const OperatorConsole = lazy(() => import('./pages/OperatorConsole'));
 const OperatorPlugins = lazy(() => import('./pages/OperatorPlugins'));
+const OperatorOauthCallback = lazy(() => import('./pages/OperatorOauthCallback'));
+const TaskBus = lazy(() => import('./pages/taskBus/TaskBusConsole'));
+const SovereignAssistant = lazy(() => import('./pages/sovereign/SovereignAssistant'));
 const OperatorBrainSessions = lazy(() => import('./pages/OperatorBrainSessions'));
 const OperatorLedger = lazy(() => import('./pages/OperatorLedger'));
 const OperatorCeilingRecovery = lazy(() => import('./pages/OperatorCeilingRecovery'));
@@ -70,7 +75,14 @@ function AppShell() {
     || location.pathname.startsWith('/jarvis')
     || location.pathname.startsWith('/nova')
     || location.pathname.startsWith('/operator')
-    || location.pathname.startsWith('/platform');
+    || location.pathname.startsWith('/platform')
+    || location.pathname.startsWith('/adaptive-music')
+    || location.pathname.startsWith('/holo-rt4d')
+    || location.pathname.startsWith('/spatial-vision')
+    || location.pathname.startsWith('/task-bus')
+    || location.pathname.startsWith('/middleware')
+    || location.pathname.startsWith('/sovereign')
+    || location.pathname.startsWith('/assistant');
 
   return (
     <div className={`App ${isJarvisRoute ? 'App--jarvis' : ''}`}>
@@ -92,6 +104,9 @@ function AppShell() {
             <Route path="/image-analyzer" element={<ImageAnalyzer />} />
             <Route path="/image-generator" element={<ImageGenerator />} />
             <Route path="/audio-processor" element={<AudioProcessor />} />
+            <Route path="/adaptive-music" element={<AdaptiveMusic />} />
+            <Route path="/holo-rt4d" element={<HoloRt4dSpatialVision />} />
+            <Route path="/spatial-vision" element={<Navigate to="/holo-rt4d" replace />} />
             <Route path="/model-library" element={<ModelLibrary />} />
             <Route path="/batch-processor" element={<BatchProcessor />} />
             <Route path="/history" element={<History />} />
@@ -101,10 +116,17 @@ function AppShell() {
             <Route path="/workflows/runs/:runId" element={<WorkflowRunDetail />} />
             <Route path="/workflows/approvals" element={<WorkflowApprovals />} />
             <Route path="/workflows/templates" element={<WorkflowTemplates />} />
+            <Route path="/task-bus" element={<TaskBus />} />
+            <Route path="/middleware" element={<TaskBus />} />
+            <Route path="/sovereign/*" element={<SovereignAssistant />} />
+            <Route path="/assistant/*" element={<SovereignAssistant />} />
             <Route path="/auth/sign-in" element={<AmplifySignIn />} />
             <Route element={<AmplifyAuthGate />}>
               <Route path="/operator" element={<OperatorConsole />} />
               <Route path="/operator/plugins" element={<OperatorPlugins />} />
+              <Route path="/operator/oauth/callback" element={<OperatorOauthCallback />} />
+              <Route path="/operator/task-bus" element={<Navigate to="/task-bus" replace />} />
+              <Route path="/operator/middleware" element={<Navigate to="/middleware" replace />} />
               <Route path="/operator/brain" element={<OperatorBrainSessions />} />
               <Route path="/operator/ceiling" element={<OperatorCeilingRecovery />} />
               <Route path="/operator/ledger" element={<OperatorLedger />} />

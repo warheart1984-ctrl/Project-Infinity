@@ -47,14 +47,8 @@ def sha256_hex(text: str) -> str:
 
 
 def _digest_of(value: Any) -> str:
-    """Hash a value the Node LIRL adapter way.
-
-    Call sites must coerce missing fields first (`subjectHash or ""`,
-    `evidenceRefs or []`). A bare None still collapses to the empty string so
-    digests match `sha256(canonical_json(""))`, never an empty digest field.
-    """
     if value is None:
-        value = ""
+        return ""
     if isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value):
         return value
     return sha256_hex(canonical_json(value))
@@ -99,17 +93,8 @@ def from_lirl(stored: dict[str, Any], *, endpoint: str = "http://127.0.0.1:7801"
             "legacy_verdict": verdict,
             "reason": "; ".join(reasons),
             "authority_chain": [
-                {
-                    "check": "actor_identity",
-                    # Match Node: !/anonymous/i.test(String(reasons))
-                    "allowed": outcome == "accept" or not re.search(r"anonymous", str(reasons), re.I),
-                    "reason": reasons[0] if reasons else "",
-                },
-                {
-                    "check": "action_allowlist",
-                    "allowed": outcome == "accept",
-                    "reason": reasons[1] if len(reasons) > 1 else "",
-                },
+                {"check": "actor_identity", "allowed": outcome == "accept" or not any("anonymous" in r.lower() for r in reasons), "reason": reasons[0] if reasons else ""},
+                {"check": "action_allowlist", "allowed": outcome == "accept", "reason": reasons[1] if len(reasons) > 1 else ""},
             ],
             "governance_mode": "strict",
         },
@@ -127,11 +112,7 @@ def from_lirl(stored: dict[str, Any], *, endpoint: str = "http://127.0.0.1:7801"
             "timing": {"started_utc": "", "finished_utc": stored.get("issuedAt") or "", "duration_ms": 0},
             "constraints_applied": {"allowlist_enforced": True},
             "verification_result": [
-                {
-                    "check": f"lirl_invariant_{index + 1}",
-                    "allowed": outcome == "accept" or index > 0,
-                    "reason": reason,
-                }
+                {"check": f"lirl_invariant_{index + 1}", "allowed": outcome == "accept" or index > 0, "reason": reason}
                 for index, reason in enumerate(reasons)
             ],
         },
@@ -238,35 +219,6 @@ def from_amul(gdp_result: dict[str, Any], *, organ_name: str = "infinity-backend
     }
     receipt["receipt_id"] = "org:" + sha256_hex(canonical_json({**receipt}))
     return receipt
-
-
-def from_evidence_receipt(
-    evidence: dict[str, Any] | Any,
-    *,
-    verdict: str = "ACCEPT",
-    actor_id: str = "runtime",
-    action: str = "",
-    reasons: list[str] | None = None,
-    endpoint: str = "http://127.0.0.1:7801",
-) -> dict[str, Any]:
-    """Lift an aaes-os evidence receipt into organism_receipt.v1 via the LIRL dialect."""
-    if hasattr(evidence, "to_lirl_stored"):
-        stored = evidence.to_lirl_stored(
-            verdict=verdict,
-            actorId=actor_id,
-            action=action,
-            reasons=list(reasons or []),
-            memoryWritten=str(verdict).upper() == "ACCEPT",
-            intentId=str(getattr(evidence, "receipt_id", "") or ""),
-        )
-    else:
-        stored = dict(evidence or {})
-        stored.setdefault("verdict", verdict)
-        stored.setdefault("actorId", actor_id)
-        stored.setdefault("action", action)
-        stored.setdefault("reasons", list(reasons or []))
-        stored.setdefault("memoryWritten", str(verdict).upper() == "ACCEPT")
-    return from_lirl(stored, endpoint=endpoint)
 
 
 def validate_organism_receipt(receipt: dict[str, Any]) -> tuple[bool, list[str]]:

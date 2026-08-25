@@ -157,3 +157,19 @@
   border-radius: 999px;
   background: rgba(20, 33, 43, 0.06);
 }
+
+.model-library__open {
+  display: inline-flex;
+  margin-top: 1rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent, #0f766e) 0%, #1f4d4a 100%);
+  color: #f8fafc;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.model-library__open:hover {
+  opacity: 0.92;
+}

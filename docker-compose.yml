@@ -1,0 +1,64 @@
+# Sovereign Assistant + task-bus — local stack (no invented DBs)
+# Usage:
+#   cp .env.example .env   # optional provider/OAuth keys
+#   docker-compose up --build   # or: docker compose up --build
+# UI:  http://localhost:3000/sovereign
+# API: http://localhost:8000/health
+#
+# Optional: uncomment api.env_file after creating .env
+# aais-middleware is a Node library/CLI wired by the Python host — not a separate service.
+# Full platform pilot (Postgres/Redis/MinIO): deploy/pilot/docker-compose.yml
+
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aais-api:local
+    ports:
+      - "8000:8000"
+    # env_file: .env
+    environment:
+      PORT: "8000"
+      AAIS_RUNTIME_DIR: /app/.runtime/aais-data
+      JARVIS_DATA_DIR: /app/.runtime/aais-data
+      ENVIRONMENT: docker
+    volumes:
+      - aais_runtime:/app/.runtime
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+  # Uses landed frontend/Dockerfile + nginx/default.conf.template (do not fork).
+  # Frontend-only: docker-compose -f frontend/docker-compose.yml up --build
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Empty → same-origin; nginx proxies /api + /ws via API_UPSTREAM
+        VITE_API_BASE_URL: ""
+        VITE_AAIS_WS_ENABLED: "0"
+        VITE_APP_BASE: /
+    image: aais-frontend:local
+    ports:
+      - "3000:80"
+    environment:
+      API_UPSTREAM: api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 20s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  aais_runtime:

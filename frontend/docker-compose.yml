@@ -1,0 +1,18 @@
+# Local frontend image (pairs with sibling compose API service named `api`)
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Empty = same-origin via nginx /api and /ws proxy (recommended for Docker)
+        VITE_API_BASE_URL: ""
+        VITE_AAIS_WS_ENABLED: "0"
+        VITE_APP_BASE: /
+    ports:
+      - "3080:80"
+    environment:
+      API_UPSTREAM: api:8000
+    # Uncomment when sibling compose provides the API network:
+    # networks:
+    #   - aais_net

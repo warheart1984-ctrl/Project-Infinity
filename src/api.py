@@ -8997,6 +8997,51 @@ def get_capability_bridge():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/jarvis/task-bus/status", methods=["GET"])
+@app.route("/api/jarvis/task-bus/catalog", methods=["GET"])
+def get_task_bus_status():
+    """Constitutional Task Bus lane catalog and auth posture."""
+    try:
+        from src.constitutional_task_bus import task_bus_status
+
+        catalog = task_bus_status()
+        return jsonify({"ok": True, **catalog}), 200
+    except Exception as e:
+        logger.error(f"Error reading task bus status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/task-bus/dispatch", methods=["POST"])
+def post_task_bus_dispatch():
+    """Primary ingress: Intent → Evidence → Authority → Decision (aais-middleware)."""
+    try:
+        from src.constitutional_task_bus import cache_trace, dispatch_task_bus_request
+
+        body = request.get_json(silent=True) or {}
+        result = dispatch_task_bus_request(body)
+        cache_trace(result)
+        status = 200 if result.get("ok") else 422
+        return jsonify(_serialize_api_payload(result)), status
+    except Exception as e:
+        logger.error(f"Error dispatching task bus request: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/task-bus/trace/<trace_id>", methods=["GET"])
+def get_task_bus_trace(trace_id: str):
+    """Return a cached middleware trace when available."""
+    try:
+        from src.constitutional_task_bus import get_cached_trace
+
+        row = get_cached_trace(trace_id)
+        if not row:
+            return jsonify({"error": "trace not found", "trace_id": trace_id}), 404
+        return jsonify(_serialize_api_payload(row)), 200
+    except Exception as e:
+        logger.error(f"Error reading task bus trace: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/jarvis/pipeline/<turn_id>", methods=["GET"])
 def get_governed_pipeline_inspect(turn_id: str):
     """Return a schema-shaped governed pipeline trace for one turn."""
@@ -12865,6 +12910,147 @@ def get_speakers_lane_organ_status():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/jarvis/beatbox-lane/score", methods=["POST"])
+def post_beatbox_lane_score():
+    """Compose a deterministic Beatbox arrangement score (stems, no Speakers mix)."""
+    try:
+        from src.adaptive_music_runtime import compose_score
+
+        payload = request.json or {}
+        scored = _run_with_inference_lock(lambda: compose_score(payload))
+        return jsonify(attach_ul_substrate(scored))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error composing beatbox score: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/speakers-lane/mix", methods=["POST"])
+def post_speakers_lane_mix():
+    """Mix Beatbox music + guide-vocal stems with Speakers ducking."""
+    try:
+        from src.adaptive_music_runtime import mix_stems
+
+        payload = request.json or {}
+        mixed = _run_with_inference_lock(lambda: mix_stems(payload))
+        mixed["audio"] = ""
+        mix_path = mixed.get("mix_path")
+        if mix_path:
+            try:
+                from pathlib import Path as _Path
+
+                mixed["audio"] = base64.b64encode(_Path(mix_path).read_bytes()).decode("ascii")
+                mixed["format"] = "wav"
+            except OSError:
+                mixed["audio"] = ""
+        return jsonify(attach_ul_substrate(mixed))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error mixing speakers stems: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/adaptive-music/compose", methods=["POST"])
+def post_adaptive_music_compose():
+    """Compose Beatbox score and Speakers mix in one bounded operator call."""
+    try:
+        from src.adaptive_music_runtime import compose_and_mix
+        from src.mandala_music_synesthesia import derive_visual_adaptation
+        from src.spatial_score_couple import apply_spatial_score_couple
+
+        payload = apply_spatial_score_couple(request.json or {})
+        include_audio = str(payload.get("include_audio", "true")).strip().lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
+        include_mandala = str(payload.get("include_mandala_sync", "true")).strip().lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
+        result = _run_with_inference_lock(
+            lambda: compose_and_mix(payload, include_audio=include_audio)
+        )
+        if include_mandala and isinstance(result, dict):
+            sync_payload = dict(payload)
+            sync_payload.update(
+                {
+                    "mood": result.get("mood") or payload.get("mood"),
+                    "bpm": result.get("bpm") or payload.get("bpm"),
+                    "duration_sec": result.get("duration_sec") or payload.get("duration_sec"),
+                    "cue_plan": result.get("cue_plan") or {},
+                    "mix_sha256": result.get("mix_sha256") or "",
+                    "session_id": result.get("session_id") or "",
+                    "scene_id": result.get("scene_id") or "",
+                }
+            )
+            result["mandala_visual_plan"] = derive_visual_adaptation(sync_payload)
+        if isinstance(result, dict) and payload.get("spatial_score_couple_receipt"):
+            result["spatial_score_couple_receipt"] = payload["spatial_score_couple_receipt"]
+        return jsonify(attach_ul_substrate(result))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error composing adaptive music: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/adaptive-music/mandala-sync", methods=["POST"])
+def post_adaptive_music_mandala_sync():
+    """Derive MandalaVisualAdaptationPlan from score cues / scene axes (plan-only)."""
+    try:
+        from src.mandala_music_synesthesia import derive_visual_adaptation
+
+        payload = request.json or {}
+        plan = derive_visual_adaptation(payload)
+        return jsonify(attach_ul_substrate(plan))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error deriving mandala visual adaptation: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/adaptive-music/sovereign-sound-loop", methods=["POST"])
+def post_sovereign_sound_loop():
+    """Guided SovereignSoundLoop: scene axes → score → mix → Mandala → optional Holo."""
+    try:
+        from src.sovereign_sound_loop import run_sovereign_sound_loop
+
+        payload = request.json or {}
+        result = _run_with_inference_lock(lambda: run_sovereign_sound_loop(payload))
+        return jsonify(attach_ul_substrate(result))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error running sovereign sound loop: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/adaptive-music/spatial-score-couple", methods=["POST"])
+def post_spatial_score_couple():
+    """Map Holo visibility/occlusion into adaptive compose mood/tension axes."""
+    try:
+        from src.spatial_score_couple import apply_spatial_score_couple, visibility_axes_from_probe
+
+        payload = request.json or {}
+        if payload.get("probe_only"):
+            axes = visibility_axes_from_probe(payload.get("holo_probe") or payload)
+            return jsonify(attach_ul_substrate(axes))
+        coupled = apply_spatial_score_couple(payload)
+        return jsonify(attach_ul_substrate(coupled))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error applying spatial score couple: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/jarvis/human-voice-extraction/status", methods=["GET"])
 def get_human_voice_extraction_organ_status():
     """Read-only Human Voice Extraction organ snapshot (Alt-13 wave)."""
@@ -13054,6 +13240,50 @@ def get_spatial_reasoning_organ_status():
         )
     except Exception as e:
         logger.error(f"Error reading spatial reasoning organ status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/holo-rt4d-spatial-vision/status", methods=["GET"])
+def get_holo_rt4d_spatial_vision_status():
+    """Read-only HoloRT4D spatial vision engine posture."""
+    try:
+        from src.holo_runtime_4d_spatial_vision import build_holo_rt4d_spatial_vision_status
+
+        plug = getattr(jarvis_operator, "spatial_reasoning", None)
+        return jsonify(
+            attach_ul_substrate(
+                {
+                    "holo_rt4d_spatial_vision": build_holo_rt4d_spatial_vision_status(
+                        plug=plug
+                    )
+                }
+            )
+        )
+    except Exception as e:
+        logger.error(f"Error reading HoloRT4D spatial vision status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/holo-rt4d-spatial-vision/probe", methods=["POST"])
+def post_holo_rt4d_spatial_vision_probe():
+    """Run one HoloRT4D spatial-vision probe with map layout for the console surface."""
+    try:
+        from src.holo_runtime_4d_spatial_vision import probe_spatial_vision
+
+        payload = request.json or {}
+        if not isinstance(payload, dict):
+            return jsonify({"error": "Request body must be a JSON object"}), 400
+        request_payload = dict(payload)
+        request_payload.setdefault("include_layout", True)
+        frame = probe_spatial_vision(
+            request_payload,
+            plug=getattr(jarvis_operator, "spatial_reasoning", None),
+        )
+        return jsonify(attach_ul_substrate(frame))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error probing HoloRT4D spatial vision: {e}")
         return jsonify({"error": str(e)}), 500
 
 

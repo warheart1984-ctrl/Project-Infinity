@@ -77,6 +77,10 @@ unless project law has already admitted the documented form.
 
 ## Features
 
+- **Sovereign Assistant** (`/sovereign`) — calm Chat + Console + Dashboard scaffold
+  (see [docs/SOVEREIGN_AAIS_SCAFFOLD.md](./docs/SOVEREIGN_AAIS_SCAFFOLD.md))
+- **Docker / Render** — multi-stage `Dockerfile` (Vite → nginx); env docs in
+  [docs/RENDER_DEPLOY.md](./docs/RENDER_DEPLOY.md)
 - **Dashboard** - Overview of all features
 - **Text Generator** - Generate uncensored text
 - **Image Analyzer** - Analyze images
