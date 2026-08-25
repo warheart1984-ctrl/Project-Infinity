@@ -3,15 +3,18 @@
 Mythic: Law Gate Registry
 Engineering: InvariantRegistryLayer
 
-Ports CANONICAL_INVARIANTS + IDSL expression evaluation without pulling the
-full TypeScript constitutional-enforcement-node package.
+Ports CANONICAL_INVARIANTS + IDSL-1 compiler (WHEN…THEN… and legacy
+`require <dim> >= <floor>`) without the full TypeScript CEN package.
+
+Baseline checkpoint with evidence receipts: commit b9852d7.
+IDSL-1 resolution: payload dimension values override context.mriSnapshot.
 """
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
-from typing import Any, Callable, Literal
+from dataclasses import dataclass
+from typing import Any, Literal
 
 Severity = Literal["low", "medium", "high", "critical"]
 AuthorityToken = Literal["VT", "FT", "MRT", "RT"]
@@ -71,6 +74,36 @@ class InvariantEvaluation:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class CompiledInvariant:
+    """TS-shaped compiled invariant: .invariant_id + .evaluate(transition)."""
+
+    invariant_id: str
+    expression: str
+    action: EnforcementAction
+    mode: Literal["idsl", "require"]
+
+    def evaluate(self, transition: dict[str, Any] | None = None) -> InvariantEvaluation:
+        dimensions = _resolve_dimensions(transition or {})
+        if self.mode == "require":
+            violated = not _evaluate_expression(self.expression, dimensions)
+        else:
+            violated = _evaluate_expression(self.expression, dimensions)
+        return InvariantEvaluation(
+            invariant_id=self.invariant_id,
+            passed=not violated,
+            action="ALLOW" if not violated else self.action,
+            message=(
+                "IDSL condition satisfied"
+                if not violated
+                else f"IDSL condition violated: {self.expression}"
+            ),
+        )
+
+    def __call__(self, transition: dict[str, Any] | None = None) -> InvariantEvaluation:
+        return self.evaluate(transition)
+
+
 def _canonical(
     invariant_id: str,
     name: str,
@@ -122,10 +155,7 @@ class InvariantRegistry:
         return [self._items[key] for key in sorted(self._items)]
 
     def evaluate_all(self, dimensions: dict[str, float]) -> list[InvariantEvaluation]:
-        results: list[InvariantEvaluation] = []
-        for definition in self.list():
-            results.append(evaluate_threshold_invariant(definition, dimensions))
-        return results
+        return [evaluate_threshold_invariant(item, dimensions) for item in self.list()]
 
 
 def create_invariant_registry(
@@ -133,17 +163,26 @@ def create_invariant_registry(
     *,
     include_canonical: bool = True,
 ) -> InvariantRegistry:
+    # Matching TS createInvariantRegistry(seed): empty seed → empty map unless we
+    # explicitly ask for canonical defaults (Python convenience).
+    if seed is not None:
+        return InvariantRegistry(list(seed))
     items = list(CANONICAL_INVARIANTS) if include_canonical else []
-    if seed:
-        items.extend(seed)
     return InvariantRegistry(items)
+
+
+def register_invariant(registry: InvariantRegistry, definition: InvariantDefinition) -> InvariantDefinition:
+    return registry.register(definition)
+
+
+def get_invariant(registry: InvariantRegistry, invariant_id: str) -> InvariantDefinition:
+    return registry.get(invariant_id)
 
 
 def evaluate_threshold_invariant(
     definition: InvariantDefinition,
     dimensions: dict[str, float],
 ) -> InvariantEvaluation:
-    """Evaluate simple `dimension >= threshold` canonical expressions."""
     match = re.fullmatch(
         r"(continuity|governance|memory|coordination|confidence)\s*(>=|<=|==|>|<)\s*(-?\d+(?:\.\d+)?)",
         definition.expression.strip(),
@@ -165,13 +204,34 @@ def evaluate_threshold_invariant(
         invariant_id=definition.id,
         passed=passed,
         action="ALLOW" if passed else "DENY",
-        message="threshold satisfied" if passed else f"{dimension} {operator} {threshold} failed ({value})",
+        message=(
+            "threshold satisfied"
+            if passed
+            else f"{dimension} {operator} {threshold} failed ({value})"
+        ),
     )
 
 
-def compile_invariant_dsl(source: str) -> Callable[[dict[str, float]], InvariantEvaluation]:
-    """Compile IDSL: WHEN <expr> THEN <ACTION> IF VIOLATED THEN DENY."""
+def compile_invariant_dsl(source: str) -> CompiledInvariant:
+    """Compile IDSL-1 or legacy `require <dim> >= <floor>` (TS-matching ids)."""
     normalized = re.sub(r"\s+", " ", source.strip())
+
+    require = re.fullmatch(
+        r"require\s+(continuity|governance|memory|coordination|confidence)\s*>=\s*(-?\d+(?:\.\d+)?)",
+        normalized,
+        flags=re.I,
+    )
+    if require:
+        dimension = require.group(1).lower()
+        threshold = float(require.group(2))
+        threshold_label = str(int(threshold)) if threshold.is_integer() else str(threshold)
+        return CompiledInvariant(
+            invariant_id=f"idsl:{dimension}:min:{threshold_label}",
+            expression=f"{dimension} >= {threshold_label}",
+            action="DENY",
+            mode="require",
+        )
+
     match = re.fullmatch(
         r"WHEN (.+) THEN (ALLOW|DENY|FREEZE|MANDATORY_REVIEW) IF VIOLATED THEN DENY",
         normalized,
@@ -180,29 +240,39 @@ def compile_invariant_dsl(source: str) -> Callable[[dict[str, float]], Invariant
     if not match:
         raise ValueError(f"unsupported IDSL syntax: {source}")
     expression = match.group(1)
-    action = match.group(2).upper()  # type: ignore[assignment]
+    action = match.group(2).upper()
     if not re.fullmatch(
         r"(continuity|governance|memory|coordination|confidence|\d|\s|[<>=.!()ANDORNOT-])+",
         expression,
         flags=re.I,
     ):
         raise ValueError(f"unsupported IDSL syntax: {source}")
-    invariant_id = f"idsl:{_hash_label(expression)}:{action.lower()}"
+    return CompiledInvariant(
+        invariant_id=f"idsl:{_hash_label(expression)}:{action.lower()}",
+        expression=expression,
+        action=action,  # type: ignore[arg-type]
+        mode="idsl",
+    )
 
-    def _evaluate(dimensions: dict[str, float]) -> InvariantEvaluation:
-        violated = _evaluate_expression(expression, dimensions)
-        return InvariantEvaluation(
-            invariant_id=invariant_id,
-            passed=not violated,
-            action="ALLOW" if not violated else action,  # type: ignore[arg-type]
-            message=(
-                "IDSL condition satisfied"
-                if not violated
-                else f"IDSL condition violated: {expression}"
-            ),
-        )
 
-    return _evaluate
+def _resolve_dimensions(transition: dict[str, Any]) -> dict[str, float]:
+    """Payload overrides MRI snapshot (TS readDimension)."""
+    context = transition.get("context") if isinstance(transition.get("context"), dict) else {}
+    snapshot = context.get("mriSnapshot") if isinstance(context, dict) else {}
+    if not isinstance(snapshot, dict):
+        snapshot = {}
+    payload = transition.get("payload") if isinstance(transition.get("payload"), dict) else {}
+    dims: dict[str, float] = {}
+    for name in DIMENSIONS:
+        if isinstance(payload, dict) and isinstance(payload.get(name), (int, float)):
+            dims[name] = float(payload[name])
+        elif isinstance(snapshot, dict) and isinstance(snapshot.get(name), (int, float)):
+            dims[name] = float(snapshot[name])
+        elif isinstance(transition.get(name), (int, float)):
+            dims[name] = float(transition[name])
+        else:
+            dims[name] = 0.0
+    return dims
 
 
 def _hash_label(value: str) -> str:
@@ -213,7 +283,10 @@ def _hash_label(value: str) -> str:
 def _evaluate_expression(expression: str, dimensions: dict[str, float]) -> bool:
     or_parts = re.split(r"\s+OR\s+", expression, flags=re.I)
     return any(
-        all(_evaluate_clause(part.strip(), dimensions) for part in re.split(r"\s+AND\s+", or_part, flags=re.I))
+        all(
+            _evaluate_clause(part.strip(), dimensions)
+            for part in re.split(r"\s+AND\s+", or_part, flags=re.I)
+        )
         for or_part in or_parts
     )
 
