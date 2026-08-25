@@ -29,6 +29,7 @@ COPY slingshot ./slingshot
 COPY triangulation ./triangulation
 COPY tools ./tools
 COPY governance ./governance
+COPY schemas ./schemas
 
 RUN pip install --upgrade pip wheel setuptools \
     && pip install --prefix=/install .
@@ -78,6 +79,7 @@ COPY --from=builder /build/slingshot ./slingshot
 COPY --from=builder /build/triangulation ./triangulation
 COPY --from=builder /build/tools ./tools
 COPY --from=builder /build/governance ./governance
+COPY --from=builder /build/schemas ./schemas
 COPY --from=middleware-builder /usr/local /usr/local
 COPY --from=middleware-builder /build/aais-middleware ./aais-middleware
 
