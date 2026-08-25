@@ -32,11 +32,18 @@ COPY triangulation ./triangulation
 COPY tools ./tools
 COPY governance ./governance
 COPY schemas ./schemas
+COPY docs ./docs
 COPY external/beatbox_speakers ./external/beatbox_speakers
 COPY external/story_forge ./external/story_forge
 
 RUN pip install --upgrade pip wheel setuptools \
     && pip install --prefix=/install .
+
+# Governance genomes reference these repository-level evidence indexes.  Copy
+# them after installation so documentation changes do not invalidate the
+# Python dependency layer.
+COPY training ./training
+COPY evals ./evals
 
 
 # The FastAPI host invokes the AAIS middleware dispatch CLI. Build it once and
@@ -71,23 +78,10 @@ RUN apt-get update \
     && useradd --uid 1000 --gid aais --create-home aais
 
 COPY --from=builder /install /usr/local
-COPY --from=builder /build/aais ./aais
-COPY --from=builder /build/app ./app
-COPY --from=builder /build/src ./src
-COPY --from=builder /build/scorpion ./scorpion
-COPY --from=builder /build/forge ./forge
-COPY --from=builder /build/forge_eval ./forge_eval
-COPY --from=builder /build/ai_factory ./ai_factory
-COPY --from=builder /build/evolve_engine ./evolve_engine
-COPY --from=builder /build/lab ./lab
-COPY --from=builder /build/mechanic ./mechanic
-COPY --from=builder /build/slingshot ./slingshot
-COPY --from=builder /build/triangulation ./triangulation
-COPY --from=builder /build/tools ./tools
-COPY --from=builder /build/governance ./governance
-COPY --from=builder /build/schemas ./schemas
-COPY --from=builder /build/external/beatbox_speakers ./external/beatbox_speakers
-COPY --from=builder /build/external/story_forge ./external/story_forge
+# Keep the deployable governance bundle coherent.  A single tree copy avoids
+# legacy Docker serialising twenty independent layers and accidentally omitting
+# an organ's contracts, proof, or source surface.
+COPY --from=builder /build/ /app/
 COPY --from=middleware-builder /usr/local /usr/local
 COPY --from=middleware-builder /build/aais-middleware ./aais-middleware
 

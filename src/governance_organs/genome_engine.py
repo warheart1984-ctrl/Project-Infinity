@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from src.governance_organs._paths import repo_root
@@ -210,12 +211,48 @@ def validate_proof(proof: Any, stage: str, gene_file: str) -> list[str]:
     return errors
 
 
+_LEGACY_REPOSITORY_ROOTS = frozenset({"project-infi", "project-infinity"})
+
+
+def resolve_registry_path(root: Path, reference: str) -> Path | None:
+    """Resolve a registry reference without allowing host-specific paths.
+
+    Genome records predate container deployment and some retain an absolute
+    Windows repository prefix (for example ``E:\\project-infi\\docs/...``).
+    That prefix identifies the repository, not an external host dependency.
+    Map only those known roots into ``root``.  Other absolute paths and path
+    traversal remain invalid so a container cannot validate against arbitrary
+    files on its host.
+    """
+    normalized = reference.replace("\\", "/")
+    windows_absolute = bool(re.match(r"^[A-Za-z]:/", normalized))
+    if windows_absolute:
+        parts = PureWindowsPath(reference).parts[1:]
+        root_index = next(
+            (index for index, part in enumerate(parts) if part.lower() in _LEGACY_REPOSITORY_ROOTS),
+            None,
+        )
+        if root_index is None:
+            return None
+        normalized = "/".join(parts[root_index + 1 :])
+    elif normalized.startswith("/"):
+        return None
+
+    candidate = (root / normalized).resolve()
+    try:
+        candidate.relative_to(root.resolve())
+    except ValueError:
+        return None
+    return candidate
+
+
 def validate_paths_exist(paths: list[str], root: Path, gene_file: str, label: str) -> list[str]:
     errors: list[str] = []
     for p in paths:
         if not isinstance(p, str):
             continue
-        if not (root / p).is_file():
+        resolved = resolve_registry_path(root, p)
+        if resolved is None or not resolved.is_file():
             errors.append(f"{gene_file}: missing {label}: {p}")
     return errors
 
