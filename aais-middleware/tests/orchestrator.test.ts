@@ -31,7 +31,10 @@ test("runRequest high-risk code denies gpt_tools without substitute", () => {
     skills: [{ id: "s1", action: "code", target: "exploit" }],
     forceDemo: true,
   });
-  assert.ok(result.policy.blockedProviders.includes("gpt_tools"));
+  assert.ok(
+    Array.isArray(result.policy.blockedProviders) &&
+      result.policy.blockedProviders.includes("gpt_tools"),
+  );
   const gptEvents = result.trace.events.filter((e) => e.provider === "gpt_tools");
   assert.ok(gptEvents.length >= 1);
   assert.ok(gptEvents.every((e) => e.error));

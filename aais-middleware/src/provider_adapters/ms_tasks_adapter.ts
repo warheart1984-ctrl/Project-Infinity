@@ -10,8 +10,24 @@ export class MsTasksAdapter {
   constructor(private readonly config: MsTasksConfig = {}) {}
 
   executeTasks(tasks: ParsedTask[]): AdapterResult {
-    const demo = this.config.forceDemo !== false || !this.config.accessToken;
-    if (!demo && !this.config.accessToken) {
+    const forceDemo = this.config.forceDemo !== false;
+    if (forceDemo) {
+      const planned = tasks.map((t) => ({
+        id: t.id,
+        title: `${t.action}: ${t.target}`.slice(0, 160),
+        status: "open",
+      }));
+      return {
+        provider: "ms_tasks",
+        lane: "microsoft_tasks",
+        status: "demo",
+        ok: true,
+        justification: "Demo Microsoft-style task plan (no Graph call).",
+        reasonCode: "TASK_BUS_DEMO_MS_TASKS",
+        output: { tasks: planned },
+      };
+    }
+    if (!this.config.accessToken) {
       return {
         provider: "ms_tasks",
         lane: "microsoft_tasks",
@@ -21,30 +37,14 @@ export class MsTasksAdapter {
         reasonCode: "TASK_BUS_NEEDS_AUTH",
       };
     }
-    if (!demo) {
-      return {
-        provider: "ms_tasks",
-        lane: "microsoft_tasks",
-        status: "denied",
-        ok: false,
-        justification:
-          "Token present but live Graph execute deferred — no silent substitute.",
-        reasonCode: "TASK_BUS_LIVE_GRAPH_DEFERRED",
-      };
-    }
-    const planned = tasks.map((t) => ({
-      id: t.id,
-      title: `${t.action}: ${t.target}`.slice(0, 160),
-      status: "open",
-    }));
     return {
       provider: "ms_tasks",
       lane: "microsoft_tasks",
-      status: "demo",
-      ok: true,
-      justification: "Demo Microsoft-style task plan (no Graph call).",
-      reasonCode: "TASK_BUS_DEMO_MS_TASKS",
-      output: { tasks: planned },
+      status: "denied",
+      ok: false,
+      justification:
+        "Token present but live Graph execute deferred — no silent substitute.",
+      reasonCode: "TASK_BUS_LIVE_GRAPH_DEFERRED",
     };
   }
 }

@@ -101,6 +101,7 @@ export function normalizeRequest(input: unknown): TaskSkillsRequest {
       id: "task-auto-1",
       action: "plan",
       target: intent.raw,
+      constraints: {},
     });
   }
   if (
@@ -126,6 +127,7 @@ export function normalizeRequest(input: unknown): TaskSkillsRequest {
       action: "generate",
       target: intent.raw,
       engine: "aais_image",
+      params: {},
     });
   }
 

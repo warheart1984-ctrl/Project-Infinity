@@ -45,7 +45,8 @@ test("evaluatePolicy allows ms_tasks on normal mixed plan", () => {
     policy: { riskLevel: "normal" },
   });
   const view = policyEvalView(req);
-  assert.equal(view.policy.riskLevel, "normal");
+  const policyView = view.policy as { riskLevel: string };
+  assert.equal(policyView.riskLevel, "normal");
   const decision = evaluatePolicy(req);
   assert.ok(decision.matchedRuleIds.includes("allow_ms_tasks_normal"));
   assert.ok(decision.approvedProviders.includes("ms_tasks"));

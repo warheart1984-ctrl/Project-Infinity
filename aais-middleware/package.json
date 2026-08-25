@@ -9,7 +9,7 @@
     "aais-middleware-dispatch": "./bin/dispatch.mjs"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node -e \"const fs=require('fs');const p='dist/src/policy_core';fs.mkdirSync(p,{recursive:true});fs.copyFileSync('src/policy_core/compliance_rules.json',p+'/compliance_rules.json')\"",
     "test": "npm run build && node --test dist/tests/*.test.js",
     "dispatch": "node bin/dispatch.mjs"
   },
