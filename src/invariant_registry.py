@@ -5,6 +5,9 @@ Engineering: InvariantRegistryLayer
 
 Ports CANONICAL_INVARIANTS + IDSL-1 compiler (WHEN…THEN… and legacy
 `require <dim> >= <floor>`) without the full TypeScript CEN package.
+
+Baseline checkpoint with evidence receipts: commit b9852d7.
+IDSL-1 resolution: payload dimension values override context.mriSnapshot.
 """
 
 from __future__ import annotations

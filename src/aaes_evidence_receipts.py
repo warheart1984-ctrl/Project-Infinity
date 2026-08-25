@@ -5,7 +5,12 @@ Engineering: EvidenceReceiptAdapter
 
 Deterministic `evidence:` ids via sha3-256 over
 claim|subsystem|refs|subjectHash. Stable stringify matches the TypeScript
-byte-for-byte (keys hashed as given — no camel/snake normalization).
+byte-for-byte.
+
+Protocol (`evidence_receipt.v1`): subject keys are hashed as given.
+camelCase and snake_case are distinct hash inputs — not a bug. Key
+normalization would be a versioned protocol change, not a cleanup.
+See docs/contracts/AAES_EVIDENCE_RECEIPT_PROTOCOL.md (checkpoint b9852d7).
 """
 
 from __future__ import annotations
@@ -22,9 +27,11 @@ EvidenceReceiptKind = Literal[
     "fault", "patch", "mri", "trust", "attestation", "runtime", "generic"
 ]
 
+# Normative protocol id. Bump only for breaking identity/canonicalization changes.
 EVIDENCE_RECEIPT_VERSION = "evidence_receipt.v1"
 
 # Node-generated goldens (trust-root / CEN / MRI) for regression anchors.
+# Baseline commit: b9852d7 (docs/contracts/AAES_EVIDENCE_RECEIPT_PROTOCOL.md).
 GOLDEN_TRUST_ROOT_RECEIPT_ID = (
     "evidence:70df716782241b7b201feeab1f5b3354dadb85c249058010c57095e7995da7f4"
 )
@@ -48,6 +55,11 @@ def _pick(mapping: Mapping[str, Any], *keys: str, default: Any = None) -> Any:
 
 
 def stable_stringify(value: Any) -> str:
+    """Canonical JSON for hashing (TS-compatible).
+
+    Keys are sorted, but key *spellings* are not normalized: camelCase and
+    snake_case remain distinct under evidence_receipt.v1.
+    """
     if isinstance(value, list):
         return "[" + ",".join(stable_stringify(item) for item in value) + "]"
     if isinstance(value, dict):

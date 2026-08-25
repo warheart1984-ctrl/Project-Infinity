@@ -93,6 +93,10 @@ class TestAaesEvidenceReceipts(unittest.TestCase):
         self.assertTrue(hash_json({"continuity": 72}).startswith("sha3-256:"))
 
     def test_camel_vs_snake_subject_keys_differ_deliberately(self):
+        """Protocol v1: camelCase vs snake_case subject keys → different ids.
+
+        Changing this would be evidence_receipt.v2, not a cleanup.
+        """
         camel = create_cen_evidence_receipt(
             receiptId="cen:x",
             transitionId="t:1",
