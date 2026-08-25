@@ -19,7 +19,10 @@ WORKFLOW_TEMPLATES = [
                         "label": "Incoming Email",
                         "kind": "trigger",
                         "subtype": "email.received",
-                        "config": {"inbox": "primary"},
+                        "config": {
+                            "inbox": "primary",
+                            "middleware_plug": "middleware.google.gmail",
+                        },
                     },
                 },
                 {
@@ -55,7 +58,10 @@ WORKFLOW_TEMPLATES = [
                 "trigger": {
                     "type": "email.received",
                     "label": "Incoming Email",
-                    "config": {"inbox": "primary"},
+                    "config": {
+                        "inbox": "primary",
+                        "middleware_plug": "middleware.google.gmail",
+                    },
                 },
                 "steps": [
                     {
@@ -120,7 +126,12 @@ WORKFLOW_TEMPLATES = [
                         "label": "Send Email",
                         "kind": "action",
                         "subtype": "email.send",
-                        "config": {"to": "user@example.com", "subject": "Daily Brief"},
+                        "config": {
+                            "to": "user@example.com",
+                            "subject": "Daily Brief",
+                            "middleware_plug": "middleware.google.gmail",
+                            "action": "email_send",
+                        },
                     },
                 },
             ],
@@ -149,7 +160,12 @@ WORKFLOW_TEMPLATES = [
                         "order": 2,
                         "type": "email.send",
                         "label": "Send Email",
-                        "config": {"to": "user@example.com", "subject": "Daily Brief"},
+                        "config": {
+                            "to": "user@example.com",
+                            "subject": "Daily Brief",
+                            "middleware_plug": "middleware.google.gmail",
+                            "action": "email_send",
+                        },
                     },
                 ],
                 "edges": [
@@ -573,6 +589,98 @@ WORKFLOW_TEMPLATES = [
                         "type": "capability.execute",
                         "label": "Mandala Sync",
                         "config": {"tool": "mandala_visual_sync"},
+                    },
+                ],
+                "edges": [
+                    {"id": "e1", "source": "trigger-1", "sourceHandle": None, "target": "action-1"},
+                    {"id": "e2", "source": "action-1", "sourceHandle": None, "target": "action-2"},
+                ],
+            },
+        },
+    },
+    {
+        "id": "constitutional-task-bus-mixed",
+        "name": "Constitutional Task Bus (mixed ask)",
+        "description": (
+            "Dispatch a multi-lane ask through the Task & Skills Bus: "
+            "plan / write / code / pictures under one governed trace."
+        ),
+        "category": "productivity",
+        "difficulty": "easy",
+        "integrations": ["task_bus", "image", "workflows"],
+        "workflow": {
+            "name": "Task Bus Mixed Dispatch",
+            "nodes": [
+                {
+                    "id": "trigger-1",
+                    "type": "triggerNode",
+                    "position": {"x": 40, "y": 200},
+                    "data": {
+                        "label": "Operator Ask",
+                        "kind": "trigger",
+                        "subtype": "operator.manual",
+                        "config": {"surface": "/task-bus"},
+                    },
+                },
+                {
+                    "id": "action-1",
+                    "type": "actionNode",
+                    "position": {"x": 360, "y": 140},
+                    "data": {
+                        "label": "Task Bus Dispatch",
+                        "kind": "action",
+                        "subtype": "capability.execute",
+                        "config": {
+                            "tool": "task_bus",
+                            "action": "dispatch",
+                            "force_demo": True,
+                            "text": "Plan this, write this, code this, give me pictures",
+                        },
+                    },
+                },
+                {
+                    "id": "action-2",
+                    "type": "actionNode",
+                    "position": {"x": 640, "y": 140},
+                    "data": {
+                        "label": "Open Image Generator",
+                        "kind": "action",
+                        "subtype": "operator.manual",
+                        "config": {"surface": "/image-generator"},
+                    },
+                },
+            ],
+            "edges": [
+                {"id": "e1", "source": "trigger-1", "target": "action-1"},
+                {"id": "e2", "source": "action-1", "target": "action-2"},
+            ],
+            "config": {
+                "schemaVersion": 1,
+                "name": "Task Bus Mixed Dispatch",
+                "trigger": {
+                    "type": "operator.manual",
+                    "label": "Operator Ask",
+                    "config": {"surface": "/task-bus"},
+                },
+                "steps": [
+                    {
+                        "id": "action-1",
+                        "order": 1,
+                        "type": "capability.execute",
+                        "label": "Task Bus Dispatch",
+                        "config": {
+                            "tool": "task_bus",
+                            "action": "dispatch",
+                            "force_demo": True,
+                            "text": "Plan this, write this, code this, give me pictures",
+                        },
+                    },
+                    {
+                        "id": "action-2",
+                        "order": 2,
+                        "type": "operator.manual",
+                        "label": "Open Image Generator",
+                        "config": {"surface": "/image-generator"},
                     },
                 ],
                 "edges": [

@@ -41,6 +41,7 @@ const WorkflowApprovals = lazy(() => import('./pages/WorkflowApprovals'));
 const WorkflowTemplates = lazy(() => import('./pages/WorkflowTemplates'));
 const OperatorConsole = lazy(() => import('./pages/OperatorConsole'));
 const OperatorPlugins = lazy(() => import('./pages/OperatorPlugins'));
+const TaskBus = lazy(() => import('./pages/taskBus/TaskBusConsole'));
 const OperatorBrainSessions = lazy(() => import('./pages/OperatorBrainSessions'));
 const OperatorLedger = lazy(() => import('./pages/OperatorLedger'));
 const OperatorCeilingRecovery = lazy(() => import('./pages/OperatorCeilingRecovery'));
@@ -109,10 +110,14 @@ function AppShell() {
             <Route path="/workflows/runs/:runId" element={<WorkflowRunDetail />} />
             <Route path="/workflows/approvals" element={<WorkflowApprovals />} />
             <Route path="/workflows/templates" element={<WorkflowTemplates />} />
+            <Route path="/task-bus" element={<TaskBus />} />
+            <Route path="/middleware" element={<TaskBus />} />
             <Route path="/auth/sign-in" element={<AmplifySignIn />} />
             <Route element={<AmplifyAuthGate />}>
               <Route path="/operator" element={<OperatorConsole />} />
               <Route path="/operator/plugins" element={<OperatorPlugins />} />
+              <Route path="/operator/task-bus" element={<Navigate to="/task-bus" replace />} />
+              <Route path="/operator/middleware" element={<Navigate to="/middleware" replace />} />
               <Route path="/operator/brain" element={<OperatorBrainSessions />} />
               <Route path="/operator/ceiling" element={<OperatorCeilingRecovery />} />
               <Route path="/operator/ledger" element={<OperatorLedger />} />

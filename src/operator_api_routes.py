@@ -147,6 +147,27 @@ def register_operator_api_routes(app: Flask) -> None:
             return jsonify({"error": "plug not found", "plug_id": plug_id}), 404
         return jsonify({"plug": row}), 200
 
+    @app.route("/api/operator/middleware-plugs", methods=["GET"])
+    def operator_middleware_plugs_catalog():
+        from src.operator_middleware_plugs import operator_middleware_plug_registry
+
+        catalog = operator_middleware_plug_registry.catalog()
+        return jsonify({"ok": True, **catalog}), 200
+
+    @app.route("/api/operator/middleware-plugs/<plug_id>/execute", methods=["POST"])
+    def operator_middleware_plugs_execute(plug_id: str):
+        from src.plug_adapter_runtime import plug_adapter_runtime
+
+        body: dict[str, Any] = request.get_json(silent=True) or {}
+        result = plug_adapter_runtime.execute_plug(
+            plug_id,
+            args=body,
+            dry_run=bool(body.get("dry_run", True)),
+            operator_approved=bool(body.get("operator_approved", True)),
+        )
+        status = 200 if result.get("outcome") not in {"not_found"} else 404
+        return jsonify(result), status
+
     @app.route("/api/operator/organs", methods=["GET"])
     def operator_organs_list():
         from src.workflow_family_readiness import list_families_with_readiness

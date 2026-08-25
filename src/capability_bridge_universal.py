@@ -40,6 +40,7 @@ from src.capabilities.story_forge_audio import STORY_FORGE_AUDIO_CAPABILITY_COMP
 from src.capabilities.ui_vision import UI_VISION_COMPONENT_ID, UiVisionCapability
 from src.capabilities.workspace_lane import WORKSPACE_LANE_COMPONENT_ID, WorkspaceLaneCapability
 from src.capability_service_bridge import DEFAULT_GOVERNANCE_MODES, CapabilityServiceBridge
+from src.constitutional_task_bus.capability import TaskBusCapability
 from src.forge_client import forge_client
 from src.evolve_client import evolve_client
 
@@ -84,6 +85,7 @@ def attach_universal_gap_adapters(
     if resolved_plug is not None:
         bridge._spatial_plug = resolved_plug
     bridge._story_forge_audio_module = ConfiguredStoryForgeAudioModule()
+    bridge._task_bus_module = TaskBusCapability()
 
     beatbox_fields = (
         {
@@ -275,6 +277,47 @@ def attach_universal_gap_adapters(
                 "with receipt metadata (beside Score tools)."
             ),
             input_fields=story_forge_fields,
+        ),
+        _spec(
+            "task_bus",
+            "task_bus",
+            "task_bus",
+            "dispatch",
+            bridge._task_bus_module,
+            ("task_bus", "constitutional_task_bus", "dispatch_task_bus"),
+            capability_label="Constitutional Task Bus",
+            capability_summary=(
+                "Single ingress: Intent → Evidence → Authority → Decision across "
+                "governed Microsoft/OpenAI/Anthropic-style and picture lanes."
+            ),
+            input_fields=(
+                {
+                    "id": "text",
+                    "label": "Operator ask",
+                    "type": "text",
+                    "required": True,
+                    "default": "Plan this, write this, code this, give me pictures",
+                    "placeholder": "plan / write / code / pictures",
+                },
+                {
+                    "id": "force_demo",
+                    "label": "Force demo",
+                    "type": "boolean",
+                    "required": False,
+                    "default": True,
+                },
+            ),
+        ),
+        _spec(
+            "task_bus",
+            "task_bus_status",
+            "task_bus_status",
+            "status",
+            bridge._task_bus_module,
+            ("task_bus_status", "task_bus_catalog"),
+            capability_label="Task Bus Status",
+            capability_summary="Lane catalog and auth posture for the Constitutional Task Bus.",
+            input_fields=(),
         ),
     ]
 

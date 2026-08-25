@@ -288,6 +288,12 @@ const cockpitToolLinks = [
     detail: 'Wire approvals, routing, and automation steps.',
     to: '/workflows',
   },
+  {
+    id: 'task_bus',
+    label: 'Task & Skills Bus',
+    detail: 'Plan / write / code / pictures under one governed trace.',
+    to: '/task-bus',
+  },
 ];
 
 const defaultSystemGuard = {

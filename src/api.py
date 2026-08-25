@@ -8997,6 +8997,51 @@ def get_capability_bridge():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/jarvis/task-bus/status", methods=["GET"])
+@app.route("/api/jarvis/task-bus/catalog", methods=["GET"])
+def get_task_bus_status():
+    """Constitutional Task Bus lane catalog and auth posture."""
+    try:
+        from src.constitutional_task_bus import task_bus_status
+
+        catalog = task_bus_status()
+        return jsonify({"ok": True, **catalog}), 200
+    except Exception as e:
+        logger.error(f"Error reading task bus status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/task-bus/dispatch", methods=["POST"])
+def post_task_bus_dispatch():
+    """Primary ingress: Intent → Evidence → Authority → Decision (aais-middleware)."""
+    try:
+        from src.constitutional_task_bus import cache_trace, dispatch_task_bus_request
+
+        body = request.get_json(silent=True) or {}
+        result = dispatch_task_bus_request(body)
+        cache_trace(result)
+        status = 200 if result.get("ok") else 422
+        return jsonify(_serialize_api_payload(result)), status
+    except Exception as e:
+        logger.error(f"Error dispatching task bus request: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/task-bus/trace/<trace_id>", methods=["GET"])
+def get_task_bus_trace(trace_id: str):
+    """Return a cached middleware trace when available."""
+    try:
+        from src.constitutional_task_bus import get_cached_trace
+
+        row = get_cached_trace(trace_id)
+        if not row:
+            return jsonify({"error": "trace not found", "trace_id": trace_id}), 404
+        return jsonify(_serialize_api_payload(row)), 200
+    except Exception as e:
+        logger.error(f"Error reading task bus trace: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/jarvis/pipeline/<turn_id>", methods=["GET"])
 def get_governed_pipeline_inspect(turn_id: str):
     """Return a schema-shaped governed pipeline trace for one turn."""

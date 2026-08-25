@@ -16,6 +16,8 @@ function Navbar() {
     || location.pathname.startsWith('/adaptive-music')
     || location.pathname.startsWith('/holo-rt4d')
     || location.pathname.startsWith('/spatial-vision')
+    || location.pathname.startsWith('/task-bus')
+    || location.pathname.startsWith('/middleware')
     || location.pathname.startsWith('/nova');
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -26,6 +28,7 @@ function Navbar() {
         { type: 'route', to: '/jarvis', label: 'Console' },
         { type: 'route', to: '/operator', label: 'Dashboard' },
         { type: 'route', to: '/operator/plugins', label: 'Plugins' },
+        { type: 'route', to: '/task-bus', label: 'Middleware' },
         { type: 'route', to: '/operator/brain', label: 'Brain' },
         { type: 'route', to: '/operator/ledger', label: 'Ledger' },
         { type: 'route', to: '/platform', label: 'Platform Ops' },
