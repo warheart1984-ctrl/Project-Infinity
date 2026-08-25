@@ -4,7 +4,7 @@
  */
 import type { IntentType } from "./interfaces.js";
 
-const TASK_RE = /\b(plan|todo|task|calendar|schedule|email|week|remind)\b/i;
+const TASK_RE = /\b(plan|todo|task|calendar|schedule|email|week|remind|follow[- ]?up)\b/i;
 const SKILL_RE = /\b(write|code|skill|tool|script|implement|chatgpt|build)\b/i;
 const WORKFLOW_RE = /\bworkflow\b/i;
 const PICTURE_RE = /\b(picture|image|draw|illustrat|mandala|storyboard|render|visual)\b/i;
@@ -29,6 +29,10 @@ export function classifyIntent(raw: string): {
   if (hits.picture) tags.push("picture");
   if (LONGFORM_RE.test(text)) tags.push("write", "longform");
   if (/\bcode\b/i.test(text)) tags.push("code");
+  if (/\b(sales|crm|lead|deal)\b/i.test(text)) tags.push("sales", "crm");
+  if (/\b(schedule|calendar|meeting)\b/i.test(text)) tags.push("scheduling");
+  if (/\b(high[- ]?risk|dangerous)\b/i.test(text)) tags.push("high_risk");
+  if (/\bsync\b.*\b(microsoft|graph|outlook)\b/i.test(text)) tags.push("sync_graph");
 
   const kinds: IntentType[] = [];
   if (hits.task) kinds.push("task");

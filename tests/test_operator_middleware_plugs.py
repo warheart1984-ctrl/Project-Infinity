@@ -19,6 +19,7 @@ class TestOperatorMiddlewarePlugRegistry(unittest.TestCase):
         self.assertIn("native.calendar.schedule", ids)
         self.assertIn("native.spreadsheet.export", ids)
         self.assertIn("middleware.microsoft.tasks", ids)
+        self.assertIn("middleware.aais.tasks", ids)
         for plug in catalog["plugs"]:
             self.assertEqual(plug["plug_class"], "middleware")
 
@@ -40,19 +41,38 @@ class TestOperatorMiddlewarePlugRegistry(unittest.TestCase):
                 "GOOGLE_OAUTH_ACCESS_TOKEN",
             ):
                 os.environ.pop(key, None)
-            result = operator_middleware_plug_registry.execute(
-                "middleware.google.gmail",
-                action="email_send",
-                payload={"force_demo": False, "to": "a@b.c"},
-            )
+            with mock.patch(
+                "src.operator_middleware_plugs.adapters.google_gmail.resolve_gmail_token",
+                return_value=None,
+            ):
+                result = operator_middleware_plug_registry.execute(
+                    "middleware.google.gmail",
+                    action="email_send",
+                    payload={"force_demo": False, "to": "a@b.c"},
+                )
         self.assertFalse(result["ok"])
         self.assertEqual(result["outcome"], "needs_auth")
         self.assertEqual(result["reason_code"], "MIDDLEWARE_NEEDS_AUTH")
 
+    def test_token_present_live_path_not_deferred(self) -> None:
+        with mock.patch(
+            "src.operator_middleware_plugs.adapters.google_gmail.resolve_gmail_token",
+            return_value="tok",
+        ), mock.patch(
+            "src.operator_middleware_plugs.adapters.google_gmail.gmail_send",
+            return_value={"ok": True, "reason_code": "GMAIL_LIVE_OK", "data": {"id": "m1"}},
+        ):
+            result = operator_middleware_plug_registry.execute(
+                "middleware.google.gmail",
+                action="email_send",
+                payload={"force_demo": False, "to": "a@b.c", "subject": "hi", "body": "x"},
+            )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["outcome"], "live")
+        self.assertNotEqual(result.get("reason_code"), "MIDDLEWARE_LIVE_DEFERRED")
+
     def test_calendar_no_longer_pending_only(self) -> None:
         pending = list_pending_plug_steps()
-        pending_patterns = {row.get("plug_id") or row.get("step_id") for row in pending}
-        # calendar/spreadsheet should not appear as pending_plug anymore
         for row in pending:
             self.assertNotEqual(row.get("plug_id"), "native.calendar.schedule")
             self.assertNotIn("native.calendar.schedule", str(row))
@@ -72,7 +92,6 @@ class TestExecutePlugMiddlewarePath(unittest.TestCase):
         self.assertEqual(result.get("outcome"), "demo")
         self.assertIn("result", result)
         self.assertEqual(result["result"].get("reason_code"), "MIDDLEWARE_DEMO")
-        # Must not be the old simulate-only shape
         self.assertNotEqual(result.get("result", {}).get("outcome"), "simulated")
 
 

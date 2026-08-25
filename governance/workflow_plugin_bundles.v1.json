@@ -288,7 +288,7 @@
       "steps": [
         {"plug_pattern": "native.forge.status", "role": "package"},
         {"plug_pattern": "native.memory.list", "role": "index"},
-        {"plug_pattern": "native.crm.attach", "role": "crm_link", "status": "pending_plug"}
+        {"plug_pattern": "middleware.crm", "role": "crm_link"}
       ],
       "required_gates": ["storage_receipt", "archive_lineage"]
     },

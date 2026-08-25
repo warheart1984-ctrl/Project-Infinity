@@ -47,18 +47,20 @@ Engineering names in TypeScript match the operator blueprint. Mythic labels rema
 
 | Lane | Adapter | Live env (optional) |
 |------|---------|---------------------|
-| Microsoft Tasks | `MsTasksAdapter` / `middleware.microsoft.tasks` | `AAIS_MS_GRAPH_TOKEN` |
+| **AAIS Tasks** | `AaisTasksAdapter` / `middleware.aais.tasks` | none (`.runtime/aais_tasks/`) |
+| CRM | `CrmAdapter` / `middleware.crm` | local `.runtime/crm/` or `AAIS_CRM_ENDPOINT` |
+| Microsoft Tasks | `GraphTasksAdapter` / `middleware.microsoft.tasks` | `AAIS_MS_GRAPH_TOKEN` / OAuth |
 | ChatGPT Skills | `GptToolsAdapter` | `OPENAI_API_KEY` |
 | Claude Skills | `ClaudeWriterAdapter` | `ANTHROPIC_API_KEY` |
 | Picture Engine | `ImageGenAdapter` | AAIS `/api/image/generate` |
 | Mandala | `MandalaAdapter` | plan hook → adaptive music |
-| Gmail email | `GoogleGmailMiddlewarePlug` | `AAIS_GMAIL_ACCESS_TOKEN` |
-| Calendar | `native.calendar.schedule` | `AAIS_MS_GRAPH_TOKEN` |
-| Spreadsheet | `native.spreadsheet.export` | local demo (no OAuth) |
+| Gmail email | `GoogleGmailMiddlewarePlug` | OAuth store / `AAIS_GMAIL_ACCESS_TOKEN` |
+| Calendar | `native.calendar.schedule` | Graph token / OAuth |
+| Spreadsheet | `native.spreadsheet.export` | local demo; Graph workbook stub optional |
 
-**AAIS-facing plug surface:** `OperatorMiddlewarePlugRegistry` (`src/operator_middleware_plugs/`) with `plug_class: middleware`. `PlugAdapterRuntime.execute_plug` routes middleware ids to real adapters (demo / needs_auth / deferred live) — no longer simulate-only for these plugs.
+**Multi-provider create:** `orchestrateTaskCreation` always writes an AAIS task, then conditionally CRM + Graph with evidence for every lane (including skips). Adaptive `analyze` runs **before** provider selection.
 
-Operator UI: `/operator/plugins` → **middleware** tab; `/task-bus` AAIS Middleware Console.
+Operator UI: `/operator/plugins` → **middleware** tab (Connect Gmail / Microsoft 365, AAIS Tasks panel); `/operator/oauth/callback`; `/task-bus`.
 
 
 ## 6. Policy DSL
@@ -86,8 +88,9 @@ Open: `/task-bus` (alias `/middleware`).
 
 ## Deferred (honest)
 
-- Full Microsoft Graph / Gmail OAuth UX
+- Full Excel workbook session API (stub path only)
 - Real embeddings-based classifier
 - Live Chat Completions / Claude Messages tool loops
 - Claude Computer Use
 - ChatGPT / Claude skill store parity
+- Bidirectional Graph sync polish / conflict resolution

@@ -39,6 +39,6 @@ if (process.argv.includes("--status")) {
   process.exit(0);
 }
 const input = await readInput();
-const result = runRequest(input);
+const result = await runRequest(input);
 process.stdout.write(JSON.stringify(result, null, 2) + "\n");
 process.exit(result.ok ? 0 : 2);

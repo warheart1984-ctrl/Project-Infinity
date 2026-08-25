@@ -23,6 +23,23 @@ describe('OperatorPlugins middleware tab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiGet.mockImplementation(async (url) => {
+      if (String(url).includes('middleware/console')) {
+        return {
+          data: {
+            ok: true,
+            mode: 'adaptive',
+            provider_status: {
+              gmail: { connected: false, mode: 'simulate' },
+              microsoft: { connected: false, mode: 'simulate' },
+              crm: { connected: true, mode: 'live' },
+              aais_tasks: { connected: true, mode: 'live' },
+              images: { connected: true, mode: 'live' },
+            },
+            aais_tasks: [],
+            recent_requests: [],
+          },
+        };
+      }
       if (String(url).includes('middleware-plugs')) {
         return {
           data: {
@@ -61,5 +78,7 @@ describe('OperatorPlugins middleware tab', () => {
       expect(screen.getByText(/Google Gmail \/ Email Workflows/i)).toBeTruthy();
     });
     expect(screen.getByRole('button', { name: /Run demo/i })).toBeTruthy();
+    expect(screen.getByTestId('connect-gmail')).toBeTruthy();
+    expect(screen.getByTestId('aais-tasks-panel')).toBeTruthy();
   });
 });

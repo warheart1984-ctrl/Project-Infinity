@@ -118,6 +118,7 @@ def dispatch_task_bus_request(payload: dict[str, Any] | None = None) -> dict[str
         result.setdefault("lane_plan", result.get("lanePlan"))
         result.setdefault("reason_codes", result.get("reasonCodes") or [])
         result.setdefault("deep_links", result.get("deepLinks") or {})
+        cache_trace(result)
     return result
 
 
@@ -150,7 +151,40 @@ def cache_trace(result: dict[str, Any]) -> None:
     tid = str(result.get("trace_id") or result.get("traceId") or "")
     if tid:
         _TRACE_CACHE[tid] = result
+        # also index by request id
+        rid = str(result.get("request_id") or result.get("requestId") or "")
+        if rid:
+            _TRACE_CACHE[rid] = result
 
 
 def get_cached_trace(trace_id: str) -> dict[str, Any] | None:
     return _TRACE_CACHE.get(trace_id)
+
+
+def recent_traces(*, limit: int = 20) -> list[dict[str, Any]]:
+    """UI-safe recent dispatch summaries (no secrets)."""
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for key, result in reversed(list(_TRACE_CACHE.items())):
+        tid = str(result.get("trace_id") or result.get("traceId") or key)
+        if tid in seen:
+            continue
+        seen.add(tid)
+        trace = result.get("trace") if isinstance(result.get("trace"), dict) else {}
+        events = list(trace.get("events") or [])
+        rows.append(
+            {
+                "trace_id": tid,
+                "request_id": result.get("request_id") or result.get("requestId"),
+                "ok": result.get("ok"),
+                "intent": result.get("intent"),
+                "event_count": len(events),
+                "providers": sorted(
+                    {str(e.get("provider")) for e in events if isinstance(e, dict) and e.get("provider")}
+                ),
+                "adaptive": result.get("adaptive"),
+            }
+        )
+        if len(rows) >= limit:
+            break
+    return rows

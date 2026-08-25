@@ -41,6 +41,7 @@ const WorkflowApprovals = lazy(() => import('./pages/WorkflowApprovals'));
 const WorkflowTemplates = lazy(() => import('./pages/WorkflowTemplates'));
 const OperatorConsole = lazy(() => import('./pages/OperatorConsole'));
 const OperatorPlugins = lazy(() => import('./pages/OperatorPlugins'));
+const OperatorOauthCallback = lazy(() => import('./pages/OperatorOauthCallback'));
 const TaskBus = lazy(() => import('./pages/taskBus/TaskBusConsole'));
 const OperatorBrainSessions = lazy(() => import('./pages/OperatorBrainSessions'));
 const OperatorLedger = lazy(() => import('./pages/OperatorLedger'));
@@ -116,6 +117,7 @@ function AppShell() {
             <Route element={<AmplifyAuthGate />}>
               <Route path="/operator" element={<OperatorConsole />} />
               <Route path="/operator/plugins" element={<OperatorPlugins />} />
+              <Route path="/operator/oauth/callback" element={<OperatorOauthCallback />} />
               <Route path="/operator/task-bus" element={<Navigate to="/task-bus" replace />} />
               <Route path="/operator/middleware" element={<Navigate to="/middleware" replace />} />
               <Route path="/operator/brain" element={<OperatorBrainSessions />} />

@@ -8,18 +8,22 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.operator_middleware_plugs.adapters.aais_tasks import AaisTasksMiddlewarePlug
+from src.operator_middleware_plugs.adapters.crm_plug import CrmMiddlewarePlug
 from src.operator_middleware_plugs.adapters.google_gmail import GoogleGmailMiddlewarePlug
 from src.operator_middleware_plugs.adapters.microsoft_graph import (
     MicrosoftCalendarMiddlewarePlug,
     MicrosoftMailMiddlewarePlug,
     MicrosoftTasksMiddlewarePlug,
+    SpreadsheetGraphMiddlewarePlug,
 )
 from src.operator_middleware_plugs.adapters.spreadsheet_export import SpreadsheetExportMiddlewarePlug
 from src.operator_middleware_plugs.contract import MiddlewarePlug
+from src.operator_middleware_plugs.oauth_token_store import oauth_token_store
 
 
 class OperatorMiddlewarePlugRegistry:
-    """Catalogs middleware plugs; execute fail-closed with demo / needs_auth / deferred live."""
+    """Catalogs middleware plugs; execute fail-closed with demo / needs_auth / live."""
 
     def __init__(self, plugs: list[MiddlewarePlug] | None = None) -> None:
         self._plugs: dict[str, MiddlewarePlug] = {}
@@ -29,11 +33,14 @@ class OperatorMiddlewarePlugRegistry:
     @staticmethod
     def _default_plugs() -> list[MiddlewarePlug]:
         return [
+            AaisTasksMiddlewarePlug(),
             GoogleGmailMiddlewarePlug(),
             MicrosoftTasksMiddlewarePlug(),
             MicrosoftCalendarMiddlewarePlug(),
             MicrosoftMailMiddlewarePlug(),
             SpreadsheetExportMiddlewarePlug(),
+            SpreadsheetGraphMiddlewarePlug(),
+            CrmMiddlewarePlug(),
         ]
 
     def register(self, plug: MiddlewarePlug) -> None:
@@ -56,14 +63,24 @@ class OperatorMiddlewarePlugRegistry:
 
     def catalog(self) -> dict[str, Any]:
         plugs = self.list_plugs()
+        gmail = oauth_token_store.status("gmail")
+        ms = oauth_token_store.status("microsoft")
         return {
             "registry": "OperatorMiddlewarePlugRegistry",
             "plug_class": "middleware",
             "plug_count": len(plugs),
             "plugs": plugs,
+            "provider_status": {
+                "gmail": gmail,
+                "microsoft": ms,
+                "crm": {"connected": True, "mode": "live", "provider": "crm"},
+                "aais_tasks": {"connected": True, "mode": "live", "provider": "aais.tasks"},
+                "images": {"connected": True, "mode": "live", "provider": "image_gen"},
+            },
+            "mode": "adaptive",
             "not_claimed": [
-                "Full Gmail/Outlook OAuth UX",
-                "Live Graph To Do/Calendar/Mail client (token → deferred until wired)",
+                "Full Google/MS OAuth consent UX polish",
+                "Full Excel workbook session API",
             ],
         }
 

@@ -22,10 +22,10 @@ export interface EvidenceRecord {
 
 export interface ReplayTrace {
   requestId: string;
-  traceId: string;
+  traceId?: string;
   events: ProviderCallEvent[];
   evidence: EvidenceRecord[];
-  decisionEvents: Record<string, unknown>[];
+  decisionEvents?: Record<string, unknown>[];
 }
 
 export interface OrchestratorResult {
@@ -40,6 +40,7 @@ export interface OrchestratorResult {
     tasks?: Record<string, unknown>[];
     skills?: Record<string, unknown>[];
     pictures?: Record<string, unknown>[];
+    taskFlow?: Record<string, unknown>;
   };
   trace: ReplayTrace;
   reasonCodes: string[];

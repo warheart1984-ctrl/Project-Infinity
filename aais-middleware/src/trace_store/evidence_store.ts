@@ -1,10 +1,17 @@
+/**
+ * Mythic: Evidence seal store
+ * Engineering: EvidenceStore + singleton evidenceStore
+ */
 import { createHash, randomUUID } from "node:crypto";
-import type { EvidenceRecord } from "./interfaces.js";
+import type { EvidenceRecord, ReplayTrace } from "./interfaces.js";
 
 export class EvidenceStore {
   private records: EvidenceRecord[] = [];
 
-  seal( partial: Omit<EvidenceRecord, "id"> & { id?: string }): EvidenceRecord {
+  seal(
+    partial: Omit<EvidenceRecord, "id"> & { id?: string },
+    trace?: ReplayTrace,
+  ): EvidenceRecord {
     const material = JSON.stringify({
       requestId: partial.requestId,
       provider: partial.provider,
@@ -24,10 +31,27 @@ export class EvidenceStore {
       },
     };
     this.records.push(record);
+    if (trace) {
+      trace.evidence.push(record);
+    }
     return record;
+  }
+
+  /** Operator alias for seal */
+  record(
+    partial: Omit<EvidenceRecord, "id"> & { id?: string },
+    trace?: ReplayTrace,
+  ): EvidenceRecord {
+    return this.seal(partial, trace);
   }
 
   all(): EvidenceRecord[] {
     return [...this.records];
   }
+
+  clear(): void {
+    this.records = [];
+  }
 }
+
+export const evidenceStore = new EvidenceStore();
