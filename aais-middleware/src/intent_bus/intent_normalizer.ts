@@ -5,6 +5,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { classifyIntent } from "./intent_classifier.js";
+import { classifyIntentWithEmbeddings } from "./embeddings_classifier.js";
 import type {
   Intent,
   ParsedPicture,
@@ -158,4 +159,43 @@ export function normalizeRequest(input: unknown): TaskSkillsRequest {
     denyProviders:
       pick<string[]>(rawIn, "denyProviders", "deny_providers") ?? [],
   };
+}
+
+/**
+ * Async normalizer — embeddings classifier before provider selection.
+ * Falls back to regex path when embeddings unavailable (never breaks dispatch).
+ */
+export async function normalizeRequestAsync(
+  input: unknown,
+): Promise<TaskSkillsRequest & { embeddingMeta?: Record<string, unknown> }> {
+  const base = normalizeRequest(input);
+  // If caller already set type+tags explicitly, keep them
+  const rawIn = asRecord(input ?? {});
+  const intentIn = rawIn.intent;
+  const hadExplicitType =
+    intentIn &&
+    typeof intentIn === "object" &&
+    (asRecord(intentIn).type !== undefined || asRecord(intentIn).tags !== undefined);
+  if (hadExplicitType) {
+    return base;
+  }
+  try {
+    const emb = await classifyIntentWithEmbeddings(base.intent.raw);
+    return {
+      ...base,
+      intent: {
+        ...base.intent,
+        type: emb.type,
+        confidence: emb.confidence,
+        tags: emb.tags,
+      },
+      embeddingMeta: {
+        backend: emb.backend,
+        scores: emb.scores,
+        fallback: emb.fallback || false,
+      },
+    };
+  } catch {
+    return { ...base, embeddingMeta: { backend: "unavailable", fallback: true } };
+  }
 }

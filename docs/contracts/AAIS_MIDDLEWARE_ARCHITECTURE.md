@@ -56,11 +56,16 @@ Engineering names in TypeScript match the operator blueprint. Mythic labels rema
 | Mandala | `MandalaAdapter` | plan hook → adaptive music |
 | Gmail email | `GoogleGmailMiddlewarePlug` | OAuth store / `AAIS_GMAIL_ACCESS_TOKEN` |
 | Calendar | `native.calendar.schedule` | Graph token / OAuth |
-| Spreadsheet | `native.spreadsheet.export` | local demo; Graph workbook stub optional |
+| Spreadsheet | `ExcelWorkbookSessionClient` / `middleware.microsoft.spreadsheet` | Graph token — createSession / range R/W / close |
+| Skill Store | `SkillStoreRegistry` | local catalog under `.runtime/skill_store/` |
 
 **Multi-provider create:** `orchestrateTaskCreation` always writes an AAIS task, then conditionally CRM + Graph with evidence for every lane (including skips). Adaptive `analyze` runs **before** provider selection.
 
-Operator UI: `/operator/plugins` → **middleware** tab (Connect Gmail / Microsoft 365, AAIS Tasks panel); `/operator/oauth/callback`; `/task-bus`.
+**Embeddings classifier:** `classifyIntentWithEmbeddings` (local hash or OpenAI) runs in `normalizeRequestAsync` before policy; falls back to regex when disabled/unavailable.
+
+**Graph sync conflicts:** `AAIS_GRAPH_SYNC_CONFLICT_POLICY=prefer_aais|prefer_graph|report` — conflicts sealed in sync result evidence (no silent overwrite on `report`).
+
+Operator UI: `/operator/plugins` → **middleware** tab (Connect Gmail / Microsoft 365, AAIS Tasks panel); `/operator/oauth/callback`; `/api/operator/skill-store`; `/task-bus`.
 
 
 ## 6. Policy DSL
@@ -88,9 +93,6 @@ Open: `/task-bus` (alias `/middleware`).
 
 ## Deferred (honest)
 
-- Full Excel workbook session API (stub path only)
-- Real embeddings-based classifier
-- Live Chat Completions / Claude Messages tool loops
 - Claude Computer Use
-- ChatGPT / Claude skill store parity
-- Bidirectional Graph sync polish / conflict resolution
+- Unsigned third-party skill marketplace install
+- Bidirectional Graph sync UI conflict resolver (API/policy shipped; operator picker UI thin)
