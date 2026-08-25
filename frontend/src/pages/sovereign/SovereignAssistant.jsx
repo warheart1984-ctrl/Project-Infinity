@@ -3,10 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { fetchMiddlewareStatus, getApiErrorMessage, invokeSkill } from '../../lib/aaisClient';
 import { useTaskBus } from '../../hooks/useTaskBus';
-import { useAaisSocket } from '../../hooks/useAaisSocket';
+import { useWebSocketLanes } from '../../hooks/useWebSocketLanes';
+import { useAdaptiveMode } from '../../hooks/useAdaptiveMode';
 import SovereignSidebar from './components/SovereignSidebar';
 import ChatWindow from './components/ChatWindow';
-import InputBox from './components/InputBox';
+import ChatInput from './components/ChatInput';
 import ProviderLanes from './components/ProviderLanes';
 import ReplayTimeline from './components/ReplayTimeline';
 import ArtifactPanel from './components/ArtifactPanel';
@@ -16,6 +17,8 @@ import FocusView from './components/FocusView';
 import RecoveryStrip from './components/RecoveryStrip';
 import ScratchInbox from './components/ScratchInbox';
 import StimulationPrefsPanel from './components/StimulationPrefsPanel';
+import MiddlewareTab from './components/MiddlewareTab';
+import EnergyFlow from './components/EnergyFlow';
 import {
   SLASH_HELP,
   getConflictPolicy,
@@ -127,9 +130,14 @@ function SovereignAssistant() {
     conflictPolicy,
   });
 
-  const socket = useAaisSocket({
+  const socket = useWebSocketLanes({
     sessionId: active?.id || 'sovereign-assistant',
     enabled: socketEnabled,
+  });
+
+  const adaptiveHook = useAdaptiveMode({
+    dispatchResult: taskBus.lastResult || active?.lastResult,
+    poll: panel === 'console' || panel === 'dashboard' || panel === 'telemetry',
   });
 
   useEffect(() => {
@@ -137,7 +145,7 @@ function SovereignAssistant() {
   }, [prefs]);
 
   useEffect(() => {
-    if (panel === 'telemetry') {
+    if (panel === 'telemetry' || panel === 'dashboard' || panel === 'console') {
       setLanesExpanded(true);
       setReplayExpanded(true);
     }
@@ -317,11 +325,42 @@ function SovereignAssistant() {
             {
               id: newId('msg'),
               role: 'assistant',
-              text: `${SLASH_HELP.join('\n')}\n/scratch — open scratch inbox\n/capture <text> — low-friction capture`,
+              text: `${SLASH_HELP.join('\n')}\n/scratch — open scratch inbox`,
               createdAt: new Date().toISOString(),
             },
           ],
         }));
+        return;
+      case 'task': {
+        if (!arg) {
+          toast.error('Usage: /task <text>');
+          return;
+        }
+        appendOutcome(await taskBus.dispatchAsk(`Create a task: ${arg}`));
+        return;
+      }
+      case 'crm': {
+        if (!arg) {
+          goPanel('crm');
+          return;
+        }
+        appendOutcome(await taskBus.dispatchAsk(`CRM follow-up: ${arg}`));
+        goPanel('crm');
+        return;
+      }
+      case 'render': {
+        if (!arg) {
+          toast.error('Usage: /render <brief>');
+          return;
+        }
+        appendOutcome(await taskBus.dispatchAsk(`Render / picture: ${arg}`));
+        return;
+      }
+      case 'console':
+        goPanel('console');
+        return;
+      case 'dashboard':
+        goPanel('dashboard');
         return;
       case 'demo':
         setForceDemo(true);
@@ -437,8 +476,16 @@ function SovereignAssistant() {
 
   const displayResult = taskBus.lastResult || active?.lastResult;
   const artifacts = taskBus.artifacts;
-  const adaptive = displayResult?.adaptive;
+  const adaptive = adaptiveHook.adaptive || displayResult?.adaptive;
   const showChat = panel === 'chat' || panel === 'telemetry';
+  const showConsole = panel === 'console' || panel === 'middleware';
+  const showDashboard = panel === 'dashboard';
+  const showTelemetryPanels =
+    panel === 'telemetry' || panel === 'console' || panel === 'dashboard' || lanesExpanded || replayExpanded;
+  const energyAllowed =
+    showDashboard
+    && prefs.animation !== 'off'
+    && (prefs.visualComplexity === 'rich' || prefs.animation === 'full' || prefs.density === 'dense');
   const focusPosture = posture || (active
     ? buildSessionPosture({
       conversationId: active.id,
@@ -542,26 +589,74 @@ function SovereignAssistant() {
           />
         ) : null}
 
-        {panel === 'middleware' ? (
-          <section className="sovereign-settings" data-testid="sovereign-middleware-panel">
-            <h2>Middleware trust</h2>
+        {panel === 'middleware' || panel === 'console' ? (
+          <>
+            <MiddlewareTab
+              providerStatus={providerStatus}
+              telemetryPath={pathForPanel('telemetry', routeBase)}
+            />
+            {showConsole && displayResult ? (
+              <div className="sovereign-main__panels" data-scaffold="ConsolePage">
+                <ProviderLanes
+                  result={displayResult}
+                  toolLoops={artifacts.toolLoops}
+                  expanded={lanesExpanded}
+                  onToggle={() => setLanesExpanded((v) => !v)}
+                />
+                <ReplayTimeline
+                  result={displayResult}
+                  embeddingMeta={artifacts.embeddingMeta}
+                  expanded={replayExpanded}
+                  onToggle={() => setReplayExpanded((v) => !v)}
+                  onReplay={handleReplay}
+                  messageId={displayResult.messageId}
+                />
+              </div>
+            ) : null}
+          </>
+        ) : null}
+
+        {showDashboard ? (
+          <section className="sovereign-dashboard" data-testid="sovereign-dashboard-page" data-scaffold="DashboardPage">
+            <header className="sovereign-chat__header">
+              <div>
+                <p className="sovereign-kicker">Civilizational console</p>
+                <h2>Dashboard</h2>
+              </div>
+              <span className="sovereign-badge" data-testid="sovereign-adaptive-mode">
+                Adaptive: {adaptiveHook.mode}
+                {adaptiveHook.status ? ` · ${adaptiveHook.status}` : ''}
+              </span>
+            </header>
             <p className="sovereign-muted">
-              Hidden from the calm chat default — open only when you need provider health.
+              Energy flow and lanes stay off the calm Chat default. Raise animation / visual complexity in Settings for orbits.
             </p>
-            <ul className="sovereign-status-list">
-              {Object.entries(providerStatus || {}).map(([key, row]) => (
-                <li key={key}>
-                  <span>{key}</span>
-                  <span className={`sovereign-badge sovereign-badge--${row?.mode || 'simulate'}`}>
-                    {row?.connected ? 'live' : row?.mode || 'simulate'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="sovereign-settings__links">
-              <Link to="/task-bus">Task Bus console</Link>
-              <Link to={pathForPanel('telemetry', routeBase)}>Open telemetry</Link>
-            </div>
+            <EnergyFlow
+              events={displayResult?.trace?.events || []}
+              lanePlan={displayResult?.lanePlan || displayResult?.lane_plan || []}
+              animation={prefs.animation}
+              enabled={energyAllowed || (showDashboard && prefs.animation !== 'off')}
+            />
+            {showTelemetryPanels && displayResult ? (
+              <div className="sovereign-main__panels">
+                <ProviderLanes
+                  result={displayResult}
+                  toolLoops={artifacts.toolLoops}
+                  expanded
+                  onToggle={() => setLanesExpanded((v) => !v)}
+                />
+                <ReplayTimeline
+                  result={displayResult}
+                  embeddingMeta={artifacts.embeddingMeta}
+                  expanded
+                  onToggle={() => setReplayExpanded((v) => !v)}
+                  onReplay={handleReplay}
+                  messageId={displayResult.messageId}
+                />
+              </div>
+            ) : (
+              <p className="sovereign-muted">Dispatch a task from Chat to populate lanes.</p>
+            )}
           </section>
         ) : null}
 
@@ -717,7 +812,7 @@ function SovereignAssistant() {
               </div>
             ) : null}
 
-            <InputBox
+            <ChatInput
               value={ask}
               onChange={setAsk}
               onSubmit={handleSubmit}

@@ -94,4 +94,27 @@ describe('SovereignAssistant cognitive load', () => {
     expect(await screen.findByTestId('sovereign-stim-prefs')).toBeTruthy();
     expect(screen.getByText(/Cognitive load/i)).toBeTruthy();
   });
+
+  it('opens console panel with middleware tab', async () => {
+    renderAt('/sovereign/console');
+    expect(await screen.findByTestId('sovereign-middleware-panel')).toBeTruthy();
+  });
+
+  it('opens dashboard with energy flow', async () => {
+    localStorage.setItem(
+      'sovereign-cognitive-prefs',
+      JSON.stringify({
+        density: 'dense',
+        animation: 'full',
+        notifications: 'essential',
+        visualComplexity: 'rich',
+        focusView: false,
+        showRecoveryStrip: false,
+        offerTaskExtraction: true,
+      }),
+    );
+    renderAt('/sovereign/dashboard');
+    expect(await screen.findByTestId('sovereign-dashboard-page')).toBeTruthy();
+    expect(screen.getByTestId('sovereign-energy-flow')).toBeTruthy();
+  });
 });
