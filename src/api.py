@@ -12913,8 +12913,9 @@ def post_adaptive_music_compose():
     try:
         from src.adaptive_music_runtime import compose_and_mix
         from src.mandala_music_synesthesia import derive_visual_adaptation
+        from src.spatial_score_couple import apply_spatial_score_couple
 
-        payload = request.json or {}
+        payload = apply_spatial_score_couple(request.json or {})
         include_audio = str(payload.get("include_audio", "true")).strip().lower() not in {
             "0",
             "false",
@@ -12944,6 +12945,8 @@ def post_adaptive_music_compose():
                 }
             )
             result["mandala_visual_plan"] = derive_visual_adaptation(sync_payload)
+        if isinstance(result, dict) and payload.get("spatial_score_couple_receipt"):
+            result["spatial_score_couple_receipt"] = payload["spatial_score_couple_receipt"]
         return jsonify(attach_ul_substrate(result))
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -12965,6 +12968,41 @@ def post_adaptive_music_mandala_sync():
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         logger.error(f"Error deriving mandala visual adaptation: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/adaptive-music/sovereign-sound-loop", methods=["POST"])
+def post_sovereign_sound_loop():
+    """Guided SovereignSoundLoop: scene axes → score → mix → Mandala → optional Holo."""
+    try:
+        from src.sovereign_sound_loop import run_sovereign_sound_loop
+
+        payload = request.json or {}
+        result = _run_with_inference_lock(lambda: run_sovereign_sound_loop(payload))
+        return jsonify(attach_ul_substrate(result))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error running sovereign sound loop: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/adaptive-music/spatial-score-couple", methods=["POST"])
+def post_spatial_score_couple():
+    """Map Holo visibility/occlusion into adaptive compose mood/tension axes."""
+    try:
+        from src.spatial_score_couple import apply_spatial_score_couple, visibility_axes_from_probe
+
+        payload = request.json or {}
+        if payload.get("probe_only"):
+            axes = visibility_axes_from_probe(payload.get("holo_probe") or payload)
+            return jsonify(attach_ul_substrate(axes))
+        coupled = apply_spatial_score_couple(payload)
+        return jsonify(attach_ul_substrate(coupled))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error applying spatial score couple: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -13157,6 +13195,50 @@ def get_spatial_reasoning_organ_status():
         )
     except Exception as e:
         logger.error(f"Error reading spatial reasoning organ status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/holo-rt4d-spatial-vision/status", methods=["GET"])
+def get_holo_rt4d_spatial_vision_status():
+    """Read-only HoloRT4D spatial vision engine posture."""
+    try:
+        from src.holo_runtime_4d_spatial_vision import build_holo_rt4d_spatial_vision_status
+
+        plug = getattr(jarvis_operator, "spatial_reasoning", None)
+        return jsonify(
+            attach_ul_substrate(
+                {
+                    "holo_rt4d_spatial_vision": build_holo_rt4d_spatial_vision_status(
+                        plug=plug
+                    )
+                }
+            )
+        )
+    except Exception as e:
+        logger.error(f"Error reading HoloRT4D spatial vision status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/holo-rt4d-spatial-vision/probe", methods=["POST"])
+def post_holo_rt4d_spatial_vision_probe():
+    """Run one HoloRT4D spatial-vision probe with map layout for the console surface."""
+    try:
+        from src.holo_runtime_4d_spatial_vision import probe_spatial_vision
+
+        payload = request.json or {}
+        if not isinstance(payload, dict):
+            return jsonify({"error": "Request body must be a JSON object"}), 400
+        request_payload = dict(payload)
+        request_payload.setdefault("include_layout", True)
+        frame = probe_spatial_vision(
+            request_payload,
+            plug=getattr(jarvis_operator, "spatial_reasoning", None),
+        )
+        return jsonify(attach_ul_substrate(frame))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error probing HoloRT4D spatial vision: {e}")
         return jsonify({"error": str(e)}), 500
 
 

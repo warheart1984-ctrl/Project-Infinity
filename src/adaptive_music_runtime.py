@@ -109,7 +109,31 @@ def _record_lineage(payload: dict[str, Any]) -> None:
             payload=payload,
         )
     except Exception:
-        return
+        pass
+
+
+def _load_voice_constraints(body: dict[str, Any]) -> dict[str, Any] | None:
+    """Load admitted HumanVoice → Speakers constraints when profile_id / path given."""
+    inline = body.get("voice_constraints")
+    if isinstance(inline, dict) and inline.get("profile_id"):
+        return dict(inline)
+    path_raw = str(body.get("constraints_path") or body.get("voice_constraints_path") or "").strip()
+    profile_id = str(body.get("profile_id") or body.get("voice_profile_id") or "").strip()
+    try:
+        from src.human_voice_extraction import speakers_constraint_path
+
+        path = Path(path_raw) if path_raw else (
+            speakers_constraint_path(profile_id) if profile_id else None
+        )
+    except Exception:
+        path = Path(path_raw) if path_raw else None
+    if path is None or not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
 
 
 @dataclass(frozen=True)
@@ -227,6 +251,19 @@ class ConstitutionalAdaptiveAudioRuntime:
         scene_id = str(score.get("scene_id") or body.get("scene_id") or "operator")
         duration_sec = float(score.get("duration_sec") or 0.0)
 
+        voice_constraints = _load_voice_constraints(body)
+        duck_amount_db = 8.0
+        voice_lufs = -16.0
+        if voice_constraints:
+            # Soft bias from admitted HumanVoice traits (fail-soft numeric clamps).
+            traits = {str(t).strip().lower() for t in (voice_constraints.get("traits") or [])}
+            if "soft" in traits or "intimate" in traits:
+                duck_amount_db = 10.0
+                voice_lufs = -15.0
+            elif "projected" in traits or "loud" in traits:
+                duck_amount_db = 6.0
+                voice_lufs = -17.0
+
         from speakers.contracts import (
             BusConfig,
             DuckingRule,
@@ -244,14 +281,14 @@ class ConstitutionalAdaptiveAudioRuntime:
             scene_id=scene_id,
             buses={
                 "music": BusConfig(target_lufs=-18.0, peak_ceiling_db=-1.0),
-                "voice": BusConfig(target_lufs=-16.0, peak_ceiling_db=-1.0),
+                "voice": BusConfig(target_lufs=voice_lufs, peak_ceiling_db=-1.0),
             },
             ducking_rules=[
                 DuckingRule(
                     rule_id="duck_music_under_voice",
                     when_source="voice",
                     affects="music",
-                    duck_amount_db=8.0,
+                    duck_amount_db=duck_amount_db,
                     attack_ms=20,
                     release_ms=80,
                 )
@@ -292,9 +329,10 @@ class ConstitutionalAdaptiveAudioRuntime:
                 "session_id": session_id,
                 "mix_sha256": mix_sha,
                 "music_stem_path": music_path,
+                "voice_profile_id": (voice_constraints or {}).get("profile_id"),
             }
         )
-        return {
+        packed = {
             "session_id": session_id,
             "scene_id": scene_id,
             "mix_path": mix_path,
@@ -304,6 +342,10 @@ class ConstitutionalAdaptiveAudioRuntime:
             "duration_sec": duration_sec,
             "mix_plan": mix_plan.to_payload(),
         }
+        if voice_constraints:
+            packed["voice_constraints"] = voice_constraints
+            packed["voice_profile_id"] = voice_constraints.get("profile_id")
+        return packed
 
     def adapt_live_state(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         """Map live/game signals into SceneState without owning narrative truth."""

@@ -81,7 +81,21 @@ describe('AdaptiveMusic', () => {
     expect(await screen.findByText(/arrangement_pcm.v1/)).toBeTruthy();
     expect(screen.getAllByText('mix').length).toBeGreaterThan(0);
     expect(screen.getByTestId('mandala-sync-plan')).toBeTruthy();
+    expect(screen.getByTestId('mandala-visual-preview')).toBeTruthy();
     expect(screen.getByText(/mvap_deadbeefcafebabe/)).toBeTruthy();
     expect(screen.getByText(/handheld pulse/)).toBeTruthy();
+  });
+
+  it('exposes Sovereign Sound and Voice→Mix panel deep-links', () => {
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Sovereign Sound' }).getAttribute('href')).toBe(
+      '/adaptive-music?panel=sovereign-sound',
+    );
+    expect(screen.getByRole('link', { name: 'Voice → Mix' }).getAttribute('href')).toBe(
+      '/adaptive-music?panel=voice-mix',
+    );
+    expect(screen.getByRole('link', { name: 'Story Forge Audio' }).getAttribute('href')).toBe(
+      '/adaptive-music?panel=story-forge',
+    );
   });
 });

@@ -26,6 +26,7 @@ const ImageAnalyzer = lazy(() => import('./pages/ImageAnalyzer'));
 const ImageGenerator = lazy(() => import('./pages/ImageGenerator'));
 const AudioProcessor = lazy(() => import('./pages/AudioProcessor'));
 const AdaptiveMusic = lazy(() => import('./pages/AdaptiveMusic'));
+const HoloRt4dSpatialVision = lazy(() => import('./pages/HoloRt4dSpatialVision'));
 const ModelLibrary = lazy(() => import('./pages/ModelLibrary'));
 const BatchProcessor = lazy(() => import('./pages/BatchProcessor'));
 const History = lazy(() => import('./pages/History'));
@@ -72,7 +73,9 @@ function AppShell() {
     || location.pathname.startsWith('/nova')
     || location.pathname.startsWith('/operator')
     || location.pathname.startsWith('/platform')
-    || location.pathname.startsWith('/adaptive-music');
+    || location.pathname.startsWith('/adaptive-music')
+    || location.pathname.startsWith('/holo-rt4d')
+    || location.pathname.startsWith('/spatial-vision');
 
   return (
     <div className={`App ${isJarvisRoute ? 'App--jarvis' : ''}`}>
@@ -95,6 +98,8 @@ function AppShell() {
             <Route path="/image-generator" element={<ImageGenerator />} />
             <Route path="/audio-processor" element={<AudioProcessor />} />
             <Route path="/adaptive-music" element={<AdaptiveMusic />} />
+            <Route path="/holo-rt4d" element={<HoloRt4dSpatialVision />} />
+            <Route path="/spatial-vision" element={<Navigate to="/holo-rt4d" replace />} />
             <Route path="/model-library" element={<ModelLibrary />} />
             <Route path="/batch-processor" element={<BatchProcessor />} />
             <Route path="/history" element={<History />} />

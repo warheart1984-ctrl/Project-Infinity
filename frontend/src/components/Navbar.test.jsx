@@ -28,6 +28,7 @@ describe('Navbar', () => {
     expect(screen.getByRole('link', { name: 'Image' }).getAttribute('href')).toBe('/image-generator');
     expect(screen.getByRole('link', { name: 'Audio' }).getAttribute('href')).toBe('/audio-processor');
     expect(screen.getByRole('link', { name: 'Score' }).getAttribute('href')).toBe('/adaptive-music');
+    expect(screen.getByRole('link', { name: 'HoloRT4D' }).getAttribute('href')).toBe('/holo-rt4d');
     expect(screen.getByRole('link', { name: 'Memory Bank' }).getAttribute('href')).toBe('/memory');
   });
 });

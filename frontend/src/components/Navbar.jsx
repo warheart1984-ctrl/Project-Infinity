@@ -14,6 +14,8 @@ function Navbar() {
     || location.pathname.startsWith('/platform')
     || location.pathname.startsWith('/audio-processor')
     || location.pathname.startsWith('/adaptive-music')
+    || location.pathname.startsWith('/holo-rt4d')
+    || location.pathname.startsWith('/spatial-vision')
     || location.pathname.startsWith('/nova');
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -33,6 +35,7 @@ function Navbar() {
         { type: 'route', to: '/image-generator', label: 'Image' },
         { type: 'route', to: '/audio-processor', label: 'Audio' },
         { type: 'route', to: '/adaptive-music', label: 'Score' },
+        { type: 'route', to: '/holo-rt4d', label: 'HoloRT4D' },
         { type: 'route', to: '/memory', label: 'Memory Bank' },
       ]
     : [
@@ -41,6 +44,7 @@ function Navbar() {
         { type: 'route', to: '/image-generator', label: 'Image' },
         { type: 'route', to: '/audio-processor', label: 'Audio' },
         { type: 'route', to: '/adaptive-music', label: 'Score' },
+        { type: 'route', to: '/holo-rt4d', label: 'HoloRT4D' },
         { type: 'route', to: '/memory', label: 'Memory Bank' },
       ];
   const brand = { mark: 'JARVIS', subtitle: 'Operator Console', to: '/jarvis' };
