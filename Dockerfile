@@ -32,6 +32,8 @@ COPY triangulation ./triangulation
 COPY tools ./tools
 COPY governance ./governance
 COPY schemas ./schemas
+COPY external/beatbox_speakers ./external/beatbox_speakers
+COPY external/story_forge ./external/story_forge
 
 RUN pip install --upgrade pip wheel setuptools \
     && pip install --prefix=/install .
@@ -84,6 +86,8 @@ COPY --from=builder /build/triangulation ./triangulation
 COPY --from=builder /build/tools ./tools
 COPY --from=builder /build/governance ./governance
 COPY --from=builder /build/schemas ./schemas
+COPY --from=builder /build/external/beatbox_speakers ./external/beatbox_speakers
+COPY --from=builder /build/external/story_forge ./external/story_forge
 COPY --from=middleware-builder /usr/local /usr/local
 COPY --from=middleware-builder /build/aais-middleware ./aais-middleware
 
