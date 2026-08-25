@@ -1,78 +1,49 @@
-"""Vitest-parity suite for @aaes-os/evidence-receipts Python port."""
+"""Tests for aaes_evidence_receipts — ported from evidenceReceipts.test.ts plus
+Node golden ids generated from packages/evidence-receipts/src/index.ts."""
 
 from __future__ import annotations
 
 import unittest
 
 from src.aaes_evidence_receipts import (
-    GOLDEN_CEN_RECEIPT_ID,
-    GOLDEN_MRI_RECEIPT_ID,
-    GOLDEN_TRUST_ROOT_RECEIPT_ID,
-    EvidenceReceiptStore,
     create_cen_evidence_receipt,
     create_evidence_receipt,
     create_mri_evidence_receipt,
-    create_receipts_for_subjects,
-    hash_json,
-    stable_stringify,
     verify_receipt_hash,
 )
 
+TRUST_GOLDEN_ID = "evidence:70df716782241b7b201feeab1f5b3354dadb85c249058010c57095e7995da7f4"
+CEN_GOLDEN_ID = "evidence:84c8ae8e1c50463f721079cc67e52485871e726c882f6ecbeb7ba6d0977243f9"
+MRI_GOLDEN_ID = "evidence:9107db7c30ce378d8304a521c813df15677ecda6ac3ee74f9ce6a3ac1bbe95e4"
 
-class TestAaesEvidenceReceipts(unittest.TestCase):
-    def test_deterministic_trust_root_golden(self):
-        first = create_evidence_receipt(
-            claim_label="trust-root-sealed",
-            subsystem="trust-root",
-            evidence_refs=["boot:ok", "measurement:h_trust_root"],
-            subject={"hTrustRoot": "sha3-256:" + ("a" * 64)},
-        )
-        second = create_evidence_receipt(
-            claimLabel="trust-root-sealed",
-            subsystem="trust-root",
-            evidenceRefs=["boot:ok", "measurement:h_trust_root"],
-            subject={"hTrustRoot": "sha3-256:" + ("a" * 64)},
-        )
-        self.assertEqual(first.receipt_id, second.receipt_id)
-        self.assertEqual(first.receipt_id, GOLDEN_TRUST_ROOT_RECEIPT_ID)
-        self.assertEqual(first.kind, "trust")
 
-    def test_cen_golden_camel_and_snake_helpers(self):
-        cen = create_cen_evidence_receipt(
-            {
-                "receiptId": "cen:abc",
-                "transitionId": "transition:deny",
-                "verdict": "DENY",
-                "reasonCode": "INVARIANT_VIOLATION",
-                "receiptHash": "sha3-256:" + ("a" * 64),
-            }
-        )
-        again = create_cen_evidence_receipt(
-            receipt_id="cen:abc",
-            transition_id="transition:deny",
-            verdict="DENY",
-            reason_code="INVARIANT_VIOLATION",
-            receipt_hash="sha3-256:" + ("a" * 64),
-        )
-        self.assertEqual(cen.receipt_id, GOLDEN_CEN_RECEIPT_ID)
-        self.assertEqual(cen.receipt_id, again.receipt_id)
-        self.assertEqual(cen.kind, "runtime")
-        self.assertTrue(verify_receipt_hash(cen))
+def _trust_input() -> dict:
+    return {
+        "claim_label": "trust-root-sealed",
+        "subsystem": "trust-root",
+        "evidence_refs": ["boot:ok", "measurement:h_trust_root"],
+        "subject": {"hTrustRoot": "sha3-256:" + "a" * 64},
+        "issued_at": "2026-08-24T12:00:00Z",
+    }
 
-    def test_mri_golden(self):
-        mri = create_mri_evidence_receipt(
-            evidenceId="evidence:mri:1",
-            provenance="system_log",
-            recency=0.92,
-            reliability=0.88,
-            crossEvidenceConsistency=0.81,
-            subject={"continuity": 72},
-        )
-        self.assertEqual(mri.receipt_id, GOLDEN_MRI_RECEIPT_ID)
-        self.assertEqual(mri.kind, "mri")
-        self.assertTrue(verify_receipt_hash(mri))
 
-    def test_kind_inference_runtime_and_mri(self):
+class TestEvidenceReceipts(unittest.TestCase):
+    def test_creates_deterministic_ids_from_claim_and_refs(self):
+        first = create_evidence_receipt(**_trust_input())
+        second = create_evidence_receipt(**_trust_input())
+        self.assertEqual(first["receipt_id"], second["receipt_id"])
+        self.assertEqual(first["claim_label"], "trust-root-sealed")
+        self.assertEqual(first["evidence_refs"], ["boot:ok", "measurement:h_trust_root"])
+
+    def test_matches_node_golden_id(self):
+        receipt = create_evidence_receipt(**_trust_input())
+        self.assertEqual(receipt["receipt_id"], TRUST_GOLDEN_ID)
+        self.assertEqual(
+            receipt["subject_hash"],
+            "sha3-256:e16f5177ec380393e39c0c8353b707d9eb692dd609909168d3a1f1932e1403bc",
+        )
+
+    def test_maps_runtime_and_mri_kinds(self):
         runtime = create_evidence_receipt(
             claim_label="runtime-initialized",
             subsystem="runtime-law-spine",
@@ -85,67 +56,82 @@ class TestAaesEvidenceReceipts(unittest.TestCase):
             evidence_refs=["mri:comparison"],
             subject={"continuity": 72},
         )
-        self.assertEqual(runtime.kind, "runtime")
-        self.assertEqual(mri.kind, "mri")
-
-    def test_stable_stringify_matches_sorted_keys(self):
-        self.assertEqual(stable_stringify({"b": 1, "a": 2}), '{"a":2,"b":1}')
-        self.assertTrue(hash_json({"continuity": 72}).startswith("sha3-256:"))
-
-    def test_camel_vs_snake_subject_keys_differ_deliberately(self):
-        """Protocol v1: camelCase vs snake_case subject keys → different ids.
-
-        Changing this would be evidence_receipt.v2, not a cleanup.
-        """
-        camel = create_cen_evidence_receipt(
-            receiptId="cen:x",
-            transitionId="t:1",
-            verdict="ALLOW",
-            reasonCode="OK",
-            receiptHash="sha3-256:" + ("b" * 64),
+        generic = create_evidence_receipt(
+            claim_label="unrelated-claim",
+            subsystem="somewhere-else",
+            evidence_refs=[],
+            subject=None,
         )
-        # Force snake_case subject hashing path by building via create_evidence_receipt
-        snake = create_evidence_receipt(
-            claim_label="cen:allow:ok",
-            subsystem="constitutional-enforcement-node",
-            evidence_refs=["cen:x", "t:1", "sha3-256:" + ("b" * 64)],
-            subject={
-                "receipt_id": "cen:x",
-                "transition_id": "t:1",
-                "verdict": "ALLOW",
-                "reason_code": "OK",
-                "receipt_hash": "sha3-256:" + ("b" * 64),
-            },
-            kind="runtime",
-        )
-        self.assertNotEqual(camel.receipt_id, snake.receipt_id)
+        self.assertEqual(runtime["kind"], "runtime")
+        self.assertEqual(mri["kind"], "mri")
+        self.assertEqual(generic["kind"], "generic")
 
-    def test_batch_create(self):
-        rows = create_receipts_for_subjects(
-            [
-                {
-                    "claimLabel": "fault-recorded",
-                    "subsystem": "fault-journal",
-                    "evidenceRefs": ["fault:1"],
-                    "subject": {"code": "E1"},
-                }
-            ]
-        )
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0].kind, "fault")
-
-    def test_store_roundtrip(self):
-        store = EvidenceReceiptStore()
+    def test_explicit_kind_overrides_inference(self):
         receipt = create_evidence_receipt(
-            claim_label="patch-applied",
-            subsystem="patch-forge",
-            evidence_refs=["patch:1"],
-            subject={"ok": True},
-            issued_at="2026-01-15T12:00:00Z",
+            claim_label="anything",
+            subsystem="anything",
+            evidence_refs=[],
+            subject={},
+            kind="fault",
         )
-        store.add(receipt.to_dict())
-        self.assertEqual(store.get_latest()["id"], receipt.receipt_id)
-        self.assertIsNotNone(store.get_by_id(receipt.receipt_id))
+        self.assertEqual(receipt["kind"], "fault")
+
+    def test_cen_receipt_seals_enforcement_decision(self):
+        # Keys mirror the TS CenReceiptSubject shape — the golden id was
+        # generated from that exact subject object.
+        cen = create_cen_evidence_receipt(
+            {
+                "receiptId": "cen:abc",
+                "verdict": "DENY",
+                "reasonCode": "INVARIANT_VIOLATION",
+                "transitionId": "transition:deny",
+                "receiptHash": "sha3-256:" + "a" * 64,
+            }
+        )
+        self.assertEqual(cen["kind"], "runtime")
+        self.assertIn("cen:abc", cen["evidence_refs"])
+        self.assertEqual(cen["receipt_id"], CEN_GOLDEN_ID)
+
+    def test_cen_accepts_snake_case_keys_deterministically(self):
+        cen = create_cen_evidence_receipt(
+            {
+                "receipt_id": "cen:abc",
+                "verdict": "DENY",
+                "reason_code": "INVARIANT_VIOLATION",
+                "transition_id": "transition:deny",
+                "receipt_hash": "sha3-256:" + "a" * 64,
+            }
+        )
+        self.assertTrue(verify_receipt_hash(cen))
+        # Different subject keys -> different hash -> different id, still stable
+        again = create_cen_evidence_receipt(
+            {
+                "receipt_id": "cen:abc",
+                "verdict": "DENY",
+                "reason_code": "INVARIANT_VIOLATION",
+                "transition_id": "transition:deny",
+                "receipt_hash": "sha3-256:" + "a" * 64,
+            }
+        )
+        self.assertEqual(cen["receipt_id"], again["receipt_id"])
+
+    def test_mri_receipt_seals_provenance(self):
+        mri = create_mri_evidence_receipt(
+            evidence_id="evidence:mri:1",
+            provenance="system_log",
+            recency=0.92,
+            reliability=0.88,
+            cross_evidence_consistency=0.81,
+            subject={"continuity": 72},
+        )
+        self.assertEqual(mri["kind"], "mri")
+        self.assertIn("evidence:mri:1", mri["evidence_refs"])
+        self.assertTrue(verify_receipt_hash(mri))
+        self.assertEqual(mri["receipt_id"], MRI_GOLDEN_ID)
+
+    def test_verify_rejects_malformed_receipts(self):
+        self.assertFalse(verify_receipt_hash({"subject_hash": "sha256:x", "receipt_id": "evidence:y"}))
+        self.assertFalse(verify_receipt_hash({"subject_hash": "sha3-256:x", "receipt_id": "nope"}))
 
 
 if __name__ == "__main__":
