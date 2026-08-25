@@ -79,8 +79,8 @@ class OperatorMiddlewarePlugRegistry:
             },
             "mode": "adaptive",
             "not_claimed": [
-                "Full Google/MS OAuth consent UX polish",
-                "Full Excel workbook session API",
+                "Claude Computer Use",
+                "Unsigned third-party skill marketplace install",
             ],
         }
 

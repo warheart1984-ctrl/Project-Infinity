@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.operator_middleware_plugs.clients.excel_workbook_client import run_workbook_session_flow
 from src.operator_middleware_plugs.clients.graph_client import (
     graph_create_event,
     graph_create_todo_task,
     graph_list_todo_tasks,
     graph_send_mail,
-    graph_workbook_stub,
 )
 from src.operator_middleware_plugs.contract import (
     MiddlewarePlug,
@@ -217,7 +217,7 @@ class MicrosoftMailMiddlewarePlug(MiddlewarePlug):
 
 
 class SpreadsheetGraphMiddlewarePlug(MiddlewarePlug):
-    """Optional Graph workbook path for spreadsheet (stub path documented)."""
+    """Microsoft Graph Excel workbook session — create / range R/W / close."""
 
     plug_id = "middleware.microsoft.spreadsheet"
 
@@ -225,28 +225,61 @@ class SpreadsheetGraphMiddlewarePlug(MiddlewarePlug):
         token = _graph_token()
         return MiddlewarePlugDescriptor(
             plug_id=self.plug_id,
-            display_name="Microsoft Workbook (stub path)",
+            display_name="Microsoft Excel Workbook Session",
             provider="microsoft",
-            authority_level="assist",
-            actions=[MiddlewarePlugAction("workbook_get", "Get workbook stub")],
+            authority_level="execute",
+            actions=[
+                MiddlewarePlugAction("workbook_session", "Full session flow"),
+                MiddlewarePlugAction("create_session", "Create session"),
+                MiddlewarePlugAction("write_range", "Write range"),
+                MiddlewarePlugAction("read_range", "Read range"),
+                MiddlewarePlugAction("close_session", "Close session"),
+            ],
             auth_status="ready" if token else "needs_auth",
-            activation_hint="Uses me/drive/root:/AAIS/exports/{name}:/workbook — full workbook API deferred.",
+            activation_hint=(
+                None
+                if token
+                else "Connect Microsoft 365 or set AAIS_MS_GRAPH_TOKEN for live Excel sessions."
+            ),
         )
 
     def execute(self, action: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         payload = dict(payload or {})
+        action = (action or "workbook_session").strip() or "workbook_session"
         force_demo = bool(payload.get("force_demo", True))
         token = _graph_token()
-        name = str(payload.get("name") or "export")
+        name = str(payload.get("name") or payload.get("itemPath") or "export")
+        item_path = str(payload.get("itemPath") or f"/AAIS/exports/{name}.xlsx")
+        address = str(payload.get("address") or "A1:B2")
+        values = payload.get("values")
+        if not isinstance(values, list):
+            values = [["metric", "value"], ["demo", 1]]
+
         if force_demo or not token:
-            return self._demo(action or "workbook_get", f"Demo workbook stub {name}", {"name": name})
-        result = graph_workbook_stub(token, name)
+            if not force_demo and not token:
+                return self._needs_auth(action, "Connect Microsoft 365 for live Excel workbook sessions.")
+            return self._demo(
+                action,
+                f"Demo Excel workbook session for {item_path}",
+                {"itemPath": item_path, "address": address, "values": values},
+            )
+
+        result = run_workbook_session_flow(
+            token,
+            item_path=item_path,
+            item_id=str(payload["itemId"]) if payload.get("itemId") else None,
+            address=address,
+            values=values,  # type: ignore[arg-type]
+        )
         return {
-            "ok": result.get("ok", False),
+            "ok": bool(result.get("ok")),
             "outcome": "live" if result.get("ok") else "error",
             "plug_id": self.plug_id,
-            "action": action or "workbook_get",
+            "action": action,
+            "auth_status": "ready",
             "data": result,
             "reason_code": result.get("reason_code"),
-            "summary": "Workbook stub path — full Excel session API deferred",
+            "summary": "Excel workbook session flow complete"
+            if result.get("ok")
+            else (result.get("error") or "Excel session failed"),
         }

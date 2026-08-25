@@ -9,7 +9,6 @@ from __future__ import annotations
 from typing import Any
 
 from src.aais_tasks.aais_tasks_adapter import AaisTasksAdapter
-from src.aais_tasks.graph_sync import sync_from_graph, sync_to_graph
 from src.operator_middleware_plugs.contract import (
     MiddlewarePlug,
     MiddlewarePlugAction,
@@ -78,8 +77,15 @@ class AaisTasksMiddlewarePlug(MiddlewarePlug):
                 "reason_code": result.get("reason_code"),
             }
         if action == "syncFromGraph":
+            from src.aais_tasks.graph_sync import sync_from_graph
+
             token = resolve_graph_token()
-            result = sync_from_graph(self._adapter.store, token)
+            result = sync_from_graph(
+                self._adapter.store,
+                token,
+                conflict_policy=str(payload.get("conflictPolicy") or payload.get("conflict_policy") or "")
+                or None,
+            )
             return {
                 "ok": result.get("ok", False),
                 "outcome": "ok" if result.get("ok") else ("needs_auth" if result.get("needs_auth") else "error"),
@@ -90,9 +96,17 @@ class AaisTasksMiddlewarePlug(MiddlewarePlug):
                 "activation_hint": result.get("error") if result.get("needs_auth") else None,
             }
         if action == "syncToGraph":
+            from src.aais_tasks.graph_sync import sync_to_graph
+
             token = resolve_graph_token()
             task_id = str(payload.get("id") or payload.get("taskId") or "")
-            result = sync_to_graph(self._adapter.store, token, task_id)
+            result = sync_to_graph(
+                self._adapter.store,
+                token,
+                task_id,
+                conflict_policy=str(payload.get("conflictPolicy") or payload.get("conflict_policy") or "")
+                or None,
+            )
             return {
                 "ok": result.get("ok", False),
                 "outcome": "ok" if result.get("ok") else ("needs_auth" if result.get("needs_auth") else "error"),
