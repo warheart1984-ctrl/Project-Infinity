@@ -7,9 +7,7 @@ import { pathForPanel } from '../lib/sovereignRoutes';
  * Engineering: SovereignSidebar — route-backed deep links
  */
 const NAV = [
-  { id: 'chat', label: 'Chat', panel: 'chat' },
-  { id: 'console', label: 'Console', panel: 'console' },
-  { id: 'dashboard', label: 'Dashboard', panel: 'dashboard' },
+  { id: 'chat', label: 'Conversations', panel: 'chat' },
   { id: 'task-bus', label: 'Task-Bus', to: '/task-bus' },
   { id: 'crm', label: 'CRM', panel: 'crm' },
   { id: 'calendar', label: 'Calendar', to: '/operator/plugins' },
@@ -36,7 +34,7 @@ function SovereignSidebar({
       <div className="sovereign-sidebar__brand">
         <p className="sovereign-kicker">Sovereign Assistant</p>
         <h1>Infinity</h1>
-        <p className="sovereign-sidebar__lede">Chat · Console · Dashboard</p>
+        <p className="sovereign-sidebar__lede">Chat · Task-Bus · Trust</p>
       </div>
 
       <button type="button" className="sovereign-sidebar__new" onClick={onNewConversation}>

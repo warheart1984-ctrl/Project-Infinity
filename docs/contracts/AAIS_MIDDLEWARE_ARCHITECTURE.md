@@ -40,7 +40,7 @@ Engineering names in TypeScript match the operator blueprint. Mythic labels rema
 | TS middleware (canonical) | `aais-middleware/` |
 | Python AAIS host (thin) | `src/constitutional_task_bus/dispatch.py` → Node CLI `aais-middleware/bin/dispatch.mjs` |
 | HTTP | `POST /api/jarvis/task-bus/dispatch`, `GET /api/jarvis/task-bus/status` |
-| React console | `/task-bus` (+ `/middleware`) — four panels |
+| React console | `/task-bus` (+ `/middleware`) — four panels; **`/sovereign`** (+ `/assistant`) — one-screen Sovereign Assistant |
 | Schema | `schemas/task_skills_request.v1.json` |
 
 ## 5. Provider lanes
@@ -91,8 +91,30 @@ Operator UI: `/operator/plugins` → **middleware** tab (Connect Gmail / Microso
 
 Open: `/task-bus` (alias `/middleware`).
 
+### Sovereign Assistant (operator chat shell)
+
+Open: **`/sovereign`** (alias `/assistant`).
+
+Deep links (React Router):
+
+| Path | Panel |
+|------|--------|
+| `/sovereign` | Calm chat + task outcomes |
+| `/sovereign/middleware` | Provider trust / health |
+| `/sovereign/plugins` | Skill store |
+| `/sovereign/settings` | Demo/live, conflict policy, socket |
+| `/sovereign/crm` | CRM artifact focus |
+| `/sovereign/telemetry` | Expanded Provider Lanes + Replay |
+| `/sovereign/scratch` | Scratch capture inbox (mention → intent → authorize) |
+
+Doctrine: chat = conversation; Task-Bus = actions (`useTaskBus`); middleware = trust; WebSocket = optional telemetry. **Cognitive-load adaptability:** calm Focus view + “Where was I?” posture + scratch capture; stimulation prefs (density/animation/visual/notifications) — not a clinical mode. Intent ladder types: `mentioned` \| `intended` \| `authorized`.
+
+**Manual path:** `/sovereign` — sample prompt in input. Scratch: `/sovereign/scratch` or `/capture …`.
+
+Types: `frontend/src/types/aais.ts` · prefs: `sovereignPrefs.ts` · posture: `sessionPosture.ts`.
+
 ## Deferred (honest)
 
 - Claude Computer Use
 - Unsigned third-party skill marketplace install
-- Bidirectional Graph sync UI conflict resolver (API/policy shipped; operator picker UI thin)
+- Bidirectional Graph sync UI conflict resolver (API/policy shipped; Sovereign Assistant has a thin prefer_aais|prefer_graph|report picker)

@@ -12,8 +12,6 @@ export type MessageRole = 'user' | 'assistant' | 'system';
 export type SovereignPanel =
   | 'chat'
   | 'middleware'
-  | 'console'
-  | 'dashboard'
   | 'plugins'
   | 'settings'
   | 'crm'

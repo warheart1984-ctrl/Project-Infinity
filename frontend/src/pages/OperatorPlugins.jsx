@@ -504,6 +504,7 @@ function OperatorPlugins() {
       </div>
       <div className="workflow-page-actions">
         <Link className="workflow-page-link" to="/operator">Console</Link>
+        <Link className="workflow-page-link" to="/sovereign">Sovereign Assistant</Link>
         <Link className="workflow-page-link" to="/task-bus">Task Bus / Middleware</Link>
         <Link className="workflow-page-link" to="/operator/brain">Brain Sessions</Link>
         <Link className="workflow-page-link" to="/operator/ledger">Decision Ledger</Link>
@@ -535,6 +536,7 @@ function OperatorPlugins() {
                   <button type="button" className="workflow-secondary-btn" data-testid="connect-ms365" onClick={() => connectOAuth('microsoft')}>
                     Connect Microsoft 365
                   </button>
+                  <Link className="workflow-page-link" to="/sovereign">Open Sovereign Assistant</Link>
                   <Link className="workflow-page-link" to="/task-bus">Open AAIS Middleware Console</Link>
                 </div>
                 <div className="workflow-step-type" style={{ marginTop: '0.75rem' }} data-testid="provider-status-badges">

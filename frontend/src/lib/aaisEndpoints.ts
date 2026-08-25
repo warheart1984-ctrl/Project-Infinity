@@ -1,7 +1,6 @@
 /**
  * Env-driven AAIS REST + WebSocket endpoint resolution.
  * Never hard-code production WS hosts — configure via VITE_*.
- * Behind Render/nginx: leave VITE_API_BASE_URL empty to use same-origin HTTPS/WSS.
  */
 
 import { getApiBaseUrl } from './settings';
@@ -15,31 +14,15 @@ function readEnv(name: string): string {
   }
 }
 
-function readWindowOrigin(): string {
-  try {
-    if (typeof window === 'undefined' || !window.location?.origin) return '';
-    return String(window.location.origin).replace(/\/+$/, '');
-  } catch {
-    return '';
-  }
-}
-
-/**
- * REST base for Task-Bus / middleware.
- * Priority: VITE_API_BASE_URL | VITE_API_URL | settings | window.origin (prod same-origin).
- * Never falls back to hard-coded localhost in production builds.
- */
 export function getAaisRestBase(): string {
   const fromEnv = readEnv('VITE_API_BASE_URL') || readEnv('VITE_API_URL') || readEnv('REACT_APP_API_URL');
   if (fromEnv) return fromEnv.replace(/\/+$/, '');
-  const fromSettings = String(getApiBaseUrl() || '').replace(/\/+$/, '');
-  if (fromSettings) return fromSettings;
-  return readWindowOrigin();
+  return String(getApiBaseUrl() || '').replace(/\/+$/, '');
 }
 
 /**
  * Build WebSocket URL for live telemetry / chat lanes.
- * Prefer VITE_AAIS_WS_URL; else derive from REST base (https→wss, http→ws).
+ * Prefer VITE_AAIS_WS_URL; else derive from REST base + path template.
  */
 export function getAaisWebSocketUrl(sessionId: string): string | null {
   const enabled = readEnv('VITE_AAIS_WS_ENABLED');
@@ -58,7 +41,7 @@ export function getAaisWebSocketUrl(sessionId: string): string | null {
     .replace(/\{sessionId\}/g, encodeURIComponent(sessionId))
     .replace(/\{session_id\}/g, encodeURIComponent(sessionId));
 
-  const rest = getAaisRestBase() || readWindowOrigin();
+  const rest = getAaisRestBase();
   if (!rest) return null;
 
   try {
@@ -74,10 +57,6 @@ export const TASK_BUS_PATHS = {
   status: '/api/jarvis/task-bus/status',
   dispatch: '/api/jarvis/task-bus/dispatch',
   trace: (traceId: string) => `/api/jarvis/task-bus/trace/${encodeURIComponent(traceId)}`,
-} as const;
-
-export const ADAPTIVE_PATHS = {
-  lanesStatus: '/api/jarvis/adaptive-lanes/status',
 } as const;
 
 export const OPERATOR_PATHS = {

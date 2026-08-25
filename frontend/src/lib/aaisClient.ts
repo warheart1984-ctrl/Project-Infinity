@@ -3,7 +3,7 @@
  */
 
 import { apiGet, apiPost, getApiErrorMessage } from './api';
-import { ADAPTIVE_PATHS, OPERATOR_PATHS, TASK_BUS_PATHS } from './aaisEndpoints';
+import { OPERATOR_PATHS, TASK_BUS_PATHS } from './aaisEndpoints';
 import type {
   ConflictPolicy,
   GraphSyncResult,
@@ -16,26 +16,8 @@ import type {
 
 export { getApiErrorMessage };
 
-/** Scaffold export name — same module as typed task-bus / middleware client. */
-export const aaisClient = {
-  fetchTaskBusStatus: () => fetchTaskBusStatus(),
-  dispatchTaskBus: (payload: TaskSkillsRequestPayload) => dispatchTaskBus(payload),
-  fetchTaskBusTrace: (traceId: string) => fetchTaskBusTrace(traceId),
-  fetchMiddlewareStatus: () => fetchMiddlewareStatus(),
-  fetchSkillStore: () => fetchSkillStore(),
-  invokeSkill: (skillId: string, args?: Record<string, unknown>) => invokeSkill(skillId, args),
-  syncAaisTasksFromGraph: (opts: { forceDemo?: boolean; conflictPolicy?: ConflictPolicy }) =>
-    syncAaisTasksFromGraph(opts),
-  fetchAdaptiveLaneStatus: () => fetchAdaptiveLaneStatus(),
-};
-
 export async function fetchTaskBusStatus(): Promise<Record<string, unknown>> {
   const res = await apiGet(TASK_BUS_PATHS.status);
-  return (res.data || {}) as Record<string, unknown>;
-}
-
-export async function fetchAdaptiveLaneStatus(): Promise<Record<string, unknown>> {
-  const res = await apiGet(ADAPTIVE_PATHS.lanesStatus);
   return (res.data || {}) as Record<string, unknown>;
 }
 
