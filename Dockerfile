@@ -34,6 +34,20 @@ RUN pip install --upgrade pip wheel setuptools \
     && pip install --prefix=/install .
 
 
+# The FastAPI host invokes the AAIS middleware dispatch CLI. Build it once and
+# copy its runtime plus Node into the final image; production never depends on
+# a host-installed Node runtime.
+FROM node:20-bookworm-slim AS middleware-builder
+
+WORKDIR /build/aais-middleware
+
+COPY aais-middleware/package.json aais-middleware/package-lock.json ./
+RUN npm ci
+
+COPY aais-middleware ./
+RUN npm run build && npm prune --omit=dev
+
+
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -64,8 +78,11 @@ COPY --from=builder /build/slingshot ./slingshot
 COPY --from=builder /build/triangulation ./triangulation
 COPY --from=builder /build/tools ./tools
 COPY --from=builder /build/governance ./governance
+COPY --from=middleware-builder /usr/local /usr/local
+COPY --from=middleware-builder /build/aais-middleware ./aais-middleware
 
-RUN mkdir -p /app/.runtime/aais-data /app/.runtime/oauth \
+RUN node --version && npm --version \
+    && mkdir -p /app/.runtime/aais-data /app/.runtime/oauth \
     && chown -R aais:aais /app
 
 USER aais

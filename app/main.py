@@ -711,6 +711,30 @@ def health(request: Request):
 
     return compact
 
+
+@app.get("/sovereign/state")
+def sovereign_state():
+    """Compact, read-only constitutional state probe for operators and deploys."""
+    health_payload = _build_operator_health_payload()
+    state = {
+        "status": health_payload.get("status"),
+        "service": "AAIS Sovereign State",
+        "legacy_api_loaded": bool(health_payload.get("legacy_api_loaded")),
+        "contract_version": PROJECT_INFI_CONTRACT_VERSION,
+        "persistence": {
+            "runtime_dir": os.getenv("AAIS_RUNTIME_DIR", "/app/.runtime/aais-data"),
+            "requires_persistent_disk": True,
+        },
+    }
+    try:
+        legacy_api = importlib.import_module("src.api")
+        governance = getattr(legacy_api, "governance_layer", None)
+        if governance is not None:
+            state["governance"] = governance.snapshot(limit_events=2, limit_requests=2)
+    except Exception as exc:  # pragma: no cover - runtime bridge degradation
+        state["governance_error"] = str(exc)
+    return state
+
 @app.get("/health/details")
 def health_details():
     """Rich, fully governed health details (the previous /health behavior).
