@@ -12912,6 +12912,7 @@ def post_adaptive_music_compose():
     """Compose Beatbox score and Speakers mix in one bounded operator call."""
     try:
         from src.adaptive_music_runtime import compose_and_mix
+        from src.mandala_music_synesthesia import derive_visual_adaptation
 
         payload = request.json or {}
         include_audio = str(payload.get("include_audio", "true")).strip().lower() not in {
@@ -12920,14 +12921,50 @@ def post_adaptive_music_compose():
             "no",
             "off",
         }
+        include_mandala = str(payload.get("include_mandala_sync", "true")).strip().lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
         result = _run_with_inference_lock(
             lambda: compose_and_mix(payload, include_audio=include_audio)
         )
+        if include_mandala and isinstance(result, dict):
+            sync_payload = dict(payload)
+            sync_payload.update(
+                {
+                    "mood": result.get("mood") or payload.get("mood"),
+                    "bpm": result.get("bpm") or payload.get("bpm"),
+                    "duration_sec": result.get("duration_sec") or payload.get("duration_sec"),
+                    "cue_plan": result.get("cue_plan") or {},
+                    "mix_sha256": result.get("mix_sha256") or "",
+                    "session_id": result.get("session_id") or "",
+                    "scene_id": result.get("scene_id") or "",
+                }
+            )
+            result["mandala_visual_plan"] = derive_visual_adaptation(sync_payload)
         return jsonify(attach_ul_substrate(result))
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         logger.error(f"Error composing adaptive music: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/adaptive-music/mandala-sync", methods=["POST"])
+def post_adaptive_music_mandala_sync():
+    """Derive MandalaVisualAdaptationPlan from score cues / scene axes (plan-only)."""
+    try:
+        from src.mandala_music_synesthesia import derive_visual_adaptation
+
+        payload = request.json or {}
+        plan = derive_visual_adaptation(payload)
+        return jsonify(attach_ul_substrate(plan))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error deriving mandala visual adaptation: {e}")
         return jsonify({"error": str(e)}), 500
 
 

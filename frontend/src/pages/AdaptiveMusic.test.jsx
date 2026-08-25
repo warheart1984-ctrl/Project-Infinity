@@ -51,6 +51,22 @@ describe('AdaptiveMusic', () => {
         engine: 'arrangement_pcm.v1',
         mix_sha256: 'abc123def456',
         stems: { mix: 'UklGRg==', kick: 'UklGRg==' },
+        mandala_visual_plan: {
+          plan_id: 'mvap_deadbeefcafebabe',
+          plan_version: 'mandala_visual_adaptation.v1',
+          consumer_seam: { owns_pixels: false, status: 'plan_only' },
+          renderer_hooks: {
+            lighting_intensity: 0.82,
+            lighting_hue_deg: 15,
+            lighting_temperature: 'warm',
+            camera_pulse_hz: 2.3333,
+            camera_motion_amplitude: 0.75,
+            camera_motion: 'handheld pulse',
+            particle_energy: 0.71,
+            particle_density: 0.55,
+            glyph_sparkle: 0.24,
+          },
+        },
       },
     });
     renderPage();
@@ -60,9 +76,12 @@ describe('AdaptiveMusic', () => {
 
     expect(adaptiveMocks.apiPost).toHaveBeenCalledWith(
       '/api/jarvis/adaptive-music/compose',
-      expect.objectContaining({ mood: 'intense', duration_sec: 6 }),
+      expect.objectContaining({ mood: 'intense', duration_sec: 6, include_mandala_sync: true }),
     );
     expect(await screen.findByText(/arrangement_pcm.v1/)).toBeTruthy();
     expect(screen.getAllByText('mix').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('mandala-sync-plan')).toBeTruthy();
+    expect(screen.getByText(/mvap_deadbeefcafebabe/)).toBeTruthy();
+    expect(screen.getByText(/handheld pulse/)).toBeTruthy();
   });
 });

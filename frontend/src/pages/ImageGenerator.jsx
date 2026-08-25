@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { apiPost, getApiErrorMessage } from '../lib/api';
 import { addHistoryEntry } from '../lib/history';
 import './ImageGenerator.css';
 
+function modeFromSearch(value) {
+  return value === 'img2img' ? 'img2img' : 'text2img';
+}
+
 function ImageGenerator() {
-  const [mode, setMode] = useState('text2img');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [mode, setMode] = useState(() => modeFromSearch(searchParams.get('mode')));
   const [prompt, setPrompt] = useState('');
   const [steps, setSteps] = useState(40);
   const [strength, setStrength] = useState(0.65);
@@ -17,6 +22,16 @@ function ImageGenerator() {
   const [statusNote, setStatusNote] = useState(
     'Text-to-image and image-to-image both use the local Diffusers path (disabled on laptop preset until you enable it).'
   );
+
+  useEffect(() => {
+    setMode(modeFromSearch(searchParams.get('mode')));
+  }, [searchParams]);
+
+  const selectMode = (nextMode) => {
+    const resolved = modeFromSearch(nextMode);
+    setMode(resolved);
+    setSearchParams({ mode: resolved }, { replace: true });
+  };
 
   const handleSourceSelect = (event) => {
     const file = event.target.files?.[0];
@@ -94,14 +109,14 @@ function ImageGenerator() {
             <button
               type="button"
               className={mode === 'text2img' ? 'active' : ''}
-              onClick={() => setMode('text2img')}
+              onClick={() => selectMode('text2img')}
             >
               Text → Image
             </button>
             <button
               type="button"
               className={mode === 'img2img' ? 'active' : ''}
-              onClick={() => setMode('img2img')}
+              onClick={() => selectMode('img2img')}
             >
               Image → Image
             </button>

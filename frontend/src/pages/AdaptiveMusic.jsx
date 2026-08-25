@@ -40,6 +40,9 @@ function AdaptiveMusic() {
       .filter((item) => item.src);
   }, [result]);
 
+  const mandalaPlan = result?.mandala_visual_plan || null;
+  const mandalaHooks = mandalaPlan?.renderer_hooks || null;
+
   const handleCompose = async () => {
     setLoading(true);
     try {
@@ -52,6 +55,7 @@ function AdaptiveMusic() {
         bpm: bpm > 0 ? bpm : undefined,
         duration_sec: duration,
         description,
+        include_mandala_sync: true,
       });
       setResult(response.data);
       toast.success('Adaptive score mixed');
@@ -68,7 +72,8 @@ function AdaptiveMusic() {
         <h1>Adaptive Score</h1>
         <p>
           Beatbox owns the score. Speakers mix and duck the stems. Scene state
-          drives a deterministic arrangement — not a loop generator.{' '}
+          drives a deterministic arrangement — not a loop generator. Mandala sync
+          derives lighting / BPM pulse / glyph energy as a plan-only seam.{' '}
           <Link to="/model-library">Model Library</Link>
           {' · '}
           <Link to="/audio-processor">Audio Processor</Link>
@@ -152,6 +157,42 @@ function AdaptiveMusic() {
                 </div>
               ))}
               {!stems.length ? <p className="file-name">Score rendered but audio payload was omitted.</p> : null}
+
+              {mandalaPlan ? (
+                <div className="mandala-sync-plan" data-testid="mandala-sync-plan">
+                  <h2>Mandala visual plan</h2>
+                  <p className="file-name">
+                    {mandalaPlan.plan_id} · {mandalaPlan.plan_version} · plan-only
+                    {mandalaPlan.consumer_seam?.owns_pixels ? '' : ' (no pixels)'}
+                  </p>
+                  {mandalaHooks ? (
+                    <dl className="mandala-hooks">
+                      <div>
+                        <dt>Lighting</dt>
+                        <dd>
+                          intensity {Number(mandalaHooks.lighting_intensity).toFixed(2)} · hue{' '}
+                          {Number(mandalaHooks.lighting_hue_deg).toFixed(0)}° · {mandalaHooks.lighting_temperature}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Camera pulse</dt>
+                        <dd>
+                          {Number(mandalaHooks.camera_pulse_hz).toFixed(2)} Hz · amp{' '}
+                          {Number(mandalaHooks.camera_motion_amplitude).toFixed(2)} · {mandalaHooks.camera_motion}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Glyph / particles</dt>
+                        <dd>
+                          energy {Number(mandalaHooks.particle_energy).toFixed(2)} · density{' '}
+                          {Number(mandalaHooks.particle_density).toFixed(2)} · sparkle{' '}
+                          {Number(mandalaHooks.glyph_sparkle).toFixed(2)}
+                        </dd>
+                      </div>
+                    </dl>
+                  ) : null}
+                </div>
+              ) : null}
             </>
           ) : (
             <p className="file-name">No score yet. Set scene state and compose.</p>
