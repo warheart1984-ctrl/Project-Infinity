@@ -9574,6 +9574,10 @@ function JarvisConsole() {
             <div className="system-links">
               <Link to="/settings">Settings</Link>
               <Link to="/memory">Memory Bank</Link>
+              <Link to="/model-library">Model Library</Link>
+              <Link to="/image-generator">Image</Link>
+              <Link to="/audio-processor">Audio</Link>
+              <Link to="/adaptive-music">Adaptive Score</Link>
               <Link to="/prompt-lab">Prompt Lab</Link>
               <Link to="/history">Memory Log</Link>
             </div>

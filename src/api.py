@@ -12865,6 +12865,72 @@ def get_speakers_lane_organ_status():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/jarvis/beatbox-lane/score", methods=["POST"])
+def post_beatbox_lane_score():
+    """Compose a deterministic Beatbox arrangement score (stems, no Speakers mix)."""
+    try:
+        from src.adaptive_music_runtime import compose_score
+
+        payload = request.json or {}
+        scored = _run_with_inference_lock(lambda: compose_score(payload))
+        return jsonify(attach_ul_substrate(scored))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error composing beatbox score: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/speakers-lane/mix", methods=["POST"])
+def post_speakers_lane_mix():
+    """Mix Beatbox music + guide-vocal stems with Speakers ducking."""
+    try:
+        from src.adaptive_music_runtime import mix_stems
+
+        payload = request.json or {}
+        mixed = _run_with_inference_lock(lambda: mix_stems(payload))
+        mixed["audio"] = ""
+        mix_path = mixed.get("mix_path")
+        if mix_path:
+            try:
+                from pathlib import Path as _Path
+
+                mixed["audio"] = base64.b64encode(_Path(mix_path).read_bytes()).decode("ascii")
+                mixed["format"] = "wav"
+            except OSError:
+                mixed["audio"] = ""
+        return jsonify(attach_ul_substrate(mixed))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error mixing speakers stems: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/jarvis/adaptive-music/compose", methods=["POST"])
+def post_adaptive_music_compose():
+    """Compose Beatbox score and Speakers mix in one bounded operator call."""
+    try:
+        from src.adaptive_music_runtime import compose_and_mix
+
+        payload = request.json or {}
+        include_audio = str(payload.get("include_audio", "true")).strip().lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
+        result = _run_with_inference_lock(
+            lambda: compose_and_mix(payload, include_audio=include_audio)
+        )
+        return jsonify(attach_ul_substrate(result))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error composing adaptive music: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/jarvis/human-voice-extraction/status", methods=["GET"])
 def get_human_voice_extraction_organ_status():
     """Read-only Human Voice Extraction organ snapshot (Alt-13 wave)."""

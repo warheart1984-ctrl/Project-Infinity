@@ -12,6 +12,8 @@ function Navbar() {
     || location.pathname.startsWith('/jarvis')
     || location.pathname.startsWith('/operator')
     || location.pathname.startsWith('/platform')
+    || location.pathname.startsWith('/audio-processor')
+    || location.pathname.startsWith('/adaptive-music')
     || location.pathname.startsWith('/nova');
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -28,11 +30,17 @@ function Navbar() {
         ...(isAmplifyAuthEnabled() ? [{ type: 'route', to: '/auth/sign-in', label: 'Sign in' }] : []),
         { type: 'route', to: '/jarvis/repo-manager', label: 'Repo Manager' },
         { type: 'route', to: '/model-library', label: 'Models' },
+        { type: 'route', to: '/image-generator', label: 'Image' },
+        { type: 'route', to: '/audio-processor', label: 'Audio' },
+        { type: 'route', to: '/adaptive-music', label: 'Score' },
         { type: 'route', to: '/memory', label: 'Memory Bank' },
       ]
     : [
         { type: 'route', to: '/jarvis', label: 'Console' },
         { type: 'route', to: '/model-library', label: 'Models' },
+        { type: 'route', to: '/image-generator', label: 'Image' },
+        { type: 'route', to: '/audio-processor', label: 'Audio' },
+        { type: 'route', to: '/adaptive-music', label: 'Score' },
         { type: 'route', to: '/memory', label: 'Memory Bank' },
       ];
   const brand = { mark: 'JARVIS', subtitle: 'Operator Console', to: '/jarvis' };
