@@ -60,6 +60,8 @@ eggs/
 lib/
 !frontend/src/lib/
 !frontend/src/lib/**
+!frontend/src/pages/sovereign/lib/
+!frontend/src/pages/sovereign/lib/**
 lib64/
 parts/
 sdist/

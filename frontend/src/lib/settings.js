@@ -10,6 +10,14 @@ export const defaultSettings = {
   defaultMaxLength: 512,
 };
 
+function isDevRuntime() {
+  try {
+    return Boolean(import.meta.env?.DEV);
+  } catch {
+    return false;
+  }
+}
+
 function readWindowOrigin() {
   if (typeof window === 'undefined') {
     return '';
@@ -17,15 +25,18 @@ function readWindowOrigin() {
   return String(window.location.origin || '').replace(/\/+$/, '');
 }
 
+/**
+ * Candidate API bases. Localhost is **dev-only** — production / Docker / Render
+ * use VITE_* env, saved settings, or same-origin (window.location.origin).
+ */
 export function getApiBaseUrlCandidates(selectedUrl) {
   const selected = String(selectedUrl || '').trim().replace(/\/+$/, '');
   const origin = readWindowOrigin();
-  return [...new Set([
-    selected,
-    origin,
-    'http://127.0.0.1:8000',
-    'http://localhost:8000',
-  ].filter(Boolean))];
+  const candidates = [selected, origin];
+  if (isDevRuntime()) {
+    candidates.push('http://127.0.0.1:8000', 'http://localhost:8000');
+  }
+  return [...new Set(candidates.filter(Boolean))];
 }
 
 function normalizeSettings(value) {

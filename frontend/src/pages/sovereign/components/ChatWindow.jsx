@@ -1,10 +1,19 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import TaskCards from './TaskCards';
-
 /**
  * Mythic: Chat surface
- * Engineering: ChatWindow
+ * Engineering: ChatWindow — uses ChatBubble scaffold component
+ */
+import React from 'react';
+import { Link } from 'react-router-dom';
+import ChatBubble from './ChatBubble';
+
+/**
+ * @param {{
+ *   messages?: import('../../../types/aais').Message[],
+ *   adaptiveMode?: import('../../../types/aais').AdaptiveSnapshot | null,
+ *   onOpenReplay?: (traceId: string) => void,
+ *   loading?: boolean,
+ *   dense?: boolean,
+ * }} props
  */
 function ChatWindow({
   messages = [],
@@ -17,6 +26,7 @@ function ChatWindow({
     <section
       className={`sovereign-chat${dense ? ' sovereign-chat--dense' : ''}`}
       data-testid="sovereign-chat-window"
+      data-scaffold="ChatWindow"
       aria-live="polite"
     >
       <header className="sovereign-chat__header">
@@ -47,23 +57,7 @@ function ChatWindow({
           </div>
         ) : null}
         {messages.map((msg) => (
-          <article
-            key={msg.id}
-            className={`sovereign-bubble sovereign-bubble--${msg.role}`}
-            data-testid={`sovereign-msg-${msg.role}`}
-          >
-            <div className="sovereign-bubble__meta">
-              <strong>{msg.role === 'user' ? 'You' : 'AAIS'}</strong>
-              {msg.traceId ? (
-                <button type="button" className="sovereign-link-btn" onClick={() => onOpenReplay?.(msg.traceId)}>
-                  Replay timeline
-                </button>
-              ) : null}
-            </div>
-            <p className="sovereign-bubble__text">{msg.text}</p>
-            {msg.cards?.length ? <TaskCards cards={msg.cards} /> : null}
-            {msg.error ? <p className="sovereign-error">{msg.error}</p> : null}
-          </article>
+          <ChatBubble key={msg.id} message={msg} onOpenReplay={onOpenReplay} />
         ))}
         {loading ? (
           <article className="sovereign-bubble sovereign-bubble--assistant">
