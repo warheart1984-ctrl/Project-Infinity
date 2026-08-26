@@ -299,10 +299,10 @@ class CapabilityServiceBridge:
             },
             {
                 "capability_id": "v9_core",
-                "capability_label": "V9 Core",
-                "capability_summary": "Run the governed V9 narrative core for direct scene continuation.",
+                "capability_label": "Narrative Studio",
+                "capability_summary": "Run Jarvis's governed narrative pipeline for direct scene continuation.",
                 "tool": "v9_core",
-                "tool_label": "V9 Core",
+                "tool_label": "Narrative Studio",
                 "action": "generate_scene",
                 "action_label": "Generate Scene",
                 "module": self._v9_module,

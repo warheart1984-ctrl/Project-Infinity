@@ -11123,7 +11123,7 @@ def run_v9_core():
             return jsonify(
                 {
                     "error": (
-                        "tool must be one of 'v9_core', 'v9', 'divine_core', or 'god_engine'"
+                        "tool must be one of 'v9_core' or 'v9'"
                     )
                 }
             ), 400

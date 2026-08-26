@@ -790,7 +790,7 @@ function buildCapabilityInputFields(capabilityId, actionId) {
         required: true,
         default: normalizedCapabilityId === 'v10_core'
           ? 'continue the next scene beat and score whether the draft is strong enough to keep'
-          : 'continue the scene through the V9 Core',
+          : 'continue the scene through Narrative Studio',
         placeholder: 'Describe what you want this capability lane to do...',
       }),
       normalizeCapabilityField({
@@ -1065,8 +1065,8 @@ const DEFAULT_CAPABILITY_BRIDGE_SNAPSHOT = buildCapabilityBridgeSnapshot([
   },
   {
     id: 'v9_core',
-    label: 'V9 Core',
-    summary: 'Run the governed V9 narrative core for direct scene continuation.',
+    label: 'Narrative Studio',
+    summary: "Run Jarvis's governed narrative pipeline for direct scene continuation.",
     module: 'v9_core',
     actions: [{ id: 'generate_scene', label: 'Generate Scene', tool: 'v9_core', providers: ['llm'], modes: ['strict', 'assist', 'experimental'] }],
   },
@@ -3135,10 +3135,10 @@ function ToolResultCard({
     return (
       <div className={`jarvis-inline-card v10-inline-card ${toolResult.status === 'failed' ? 'action-failed' : ''}`}>
         <div className="jarvis-inline-card-header">
-          <span>V9 Core</span>
+          <span>Narrative Studio</span>
           <strong>{result.location || 'scene continuation'}</strong>
         </div>
-        <p>{toolResult.summary || 'V9 core completed.'}</p>
+        <p>{toolResult.summary || 'Narrative Studio completed.'}</p>
         <div className="jarvis-inline-meta">
           <span className={`inline-meta-chip ${toolResult.status === 'failed' ? 'danger' : 'success'}`}>
             {toolResult.status || 'completed'}
