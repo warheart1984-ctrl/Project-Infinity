@@ -70,7 +70,6 @@ services:
     dockerfilePath: ./deploy/platform/Dockerfile
     dockerContext: .
     dockerCommand: python -m platform serve --host 0.0.0.0 --port $PORT
-    healthCheckPath: /v1/health
     disk:
       name: platform-runtime
       mountPath: /app/.runtime
@@ -276,7 +275,6 @@ services:
   - type: web
     name: aais-frontend
     runtime: static
-    region: oregon
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: ./frontend/build
     routes:
