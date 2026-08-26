@@ -151,7 +151,7 @@ services:
     plan: starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: sh -c "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    dockerCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     disk:
       name: aais-runtime
