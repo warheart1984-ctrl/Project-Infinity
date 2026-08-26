@@ -265,6 +265,8 @@ def _serve_frontend_index() -> FileResponse:
 
 def _probe_contractor(name: str, base_url: str, path: str = "/health") -> dict:
     """Lightweight probe for optional contractors. Short timeout so health stays snappy."""
+    if "://" not in base_url:
+        base_url = f"http://{base_url}"
     url = f"{base_url.rstrip('/')}{path}"
     if requests is None:
         return {"name": name, "url": url, "reachable": False, "error": "requests not installed"}

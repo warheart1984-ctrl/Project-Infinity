@@ -185,6 +185,23 @@ services:
         value: /app/.runtime/aais-data
       - key: ENVIRONMENT
         value: production
+      - key: AAIS_DEPLOYMENT_MODE
+        value: full
+      - key: FORGE_BASE_URL
+        fromService:
+          name: aais-forge
+          type: pserv
+          property: hostport
+      - key: FORGE_EVAL_BASE_URL
+        fromService:
+          name: aais-forge-eval
+          type: pserv
+          property: hostport
+      - key: EVOLVE_BASE_URL
+        fromService:
+          name: aais-evolve
+          type: pserv
+          property: hostport
       - key: PLATFORM_API_BASE_URL
         fromService:
           name: platform-api
@@ -197,6 +214,61 @@ services:
         sync: false
       - key: APP_BEARER_TOKEN
         sync: false
+
+  # Internal contractor services. They have no public URLs; only aais-api can
+  # reach them through Render's private host:port addresses.
+  - type: pserv
+    name: aais-forge
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python -m flask --app forge.main run --host 0.0.0.0 --port $PORT
+    disk:
+      name: forge-runtime
+      mountPath: /app/.runtime
+      sizeGB: 1
+    envVars:
+      - key: FORGE_STORAGE
+        value: /app/.runtime/forge
+
+  - type: pserv
+    name: aais-forge-eval
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python -m flask --app forge_eval.main run --host 0.0.0.0 --port $PORT
+    disk:
+      name: forge-eval-runtime
+      mountPath: /app/.runtime
+      sizeGB: 1
+    envVars:
+      - key: FORGE_EVAL_STORAGE
+        value: /app/.runtime/forge_eval
+
+  - type: pserv
+    name: aais-evolve
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python -m flask --app evolve_engine.main run --host 0.0.0.0 --port $PORT
+    disk:
+      name: evolve-runtime
+      mountPath: /app/.runtime
+      sizeGB: 1
+    envVars:
+      - key: EVOLVE_STORAGE
+        value: /app/.runtime/evolve
+      - key: FORGE_EVAL_BASE_URL
+        fromService:
+          name: aais-forge-eval
+          type: pserv
+          property: hostport
 
   # Operator UI — static SPA (Render Option B). SPA rewrite covers /sovereign/*.
   # Docker FE (frontend/Dockerfile) is for compose/self-host — see frontend/docs/RENDER_DEPLOY.md.
