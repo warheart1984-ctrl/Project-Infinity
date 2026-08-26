@@ -98,14 +98,8 @@ services:
         generateValue: true
       - key: PLATFORM_EXCHANGE_SECRET
         generateValue: true
-      - key: PLATFORM_S3_ENDPOINT
-        sync: false
-      - key: PLATFORM_S3_BUCKET
-        sync: false
-      - key: PLATFORM_S3_ACCESS_KEY
-        sync: false
-      - key: PLATFORM_S3_SECRET_KEY
-        sync: false
+      # External S3 is optional. Omit its credentials in the default Blueprint;
+      # platform.settings falls back to local/runtime-backed artifact handling.
 
   - type: worker
     name: platform-worker
@@ -137,26 +131,6 @@ services:
           name: platform-api
           type: pserv
           envVarKey: PLATFORM_MASTER_API_KEY
-      - key: PLATFORM_S3_ENDPOINT
-        fromService:
-          name: platform-api
-          type: pserv
-          envVarKey: PLATFORM_S3_ENDPOINT
-      - key: PLATFORM_S3_BUCKET
-        fromService:
-          name: platform-api
-          type: pserv
-          envVarKey: PLATFORM_S3_BUCKET
-      - key: PLATFORM_S3_ACCESS_KEY
-        fromService:
-          name: platform-api
-          type: pserv
-          envVarKey: PLATFORM_S3_ACCESS_KEY
-      - key: PLATFORM_S3_SECRET_KEY
-        fromService:
-          name: platform-api
-          type: pserv
-          envVarKey: PLATFORM_S3_SECRET_KEY
 
   # Public AAIS API — Jarvis / task-bus / OAuth / middleware plugs
   # aais-middleware Node package is NOT a separate Render service (Python host owns HTTP).
