@@ -95,6 +95,29 @@
   overflow-y: auto;
 }
 
+.jarvis-simple-plugs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--outline);
+}
+
+.jarvis-simple-plugs span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.jarvis-simple-plugs a {
+  color: var(--ink);
+  font-size: 0.84rem;
+  text-decoration: none;
+}
+
+.jarvis-simple-plugs a:hover { color: #5ce7ff; }
+
 .jarvis-simple-session {
   border: 1px solid transparent;
   background: transparent;

@@ -8599,9 +8599,15 @@ function JarvisConsole() {
                 </button>
               ))}
             </div>
+            <div className="jarvis-simple-plugs">
+              <span>Plugs</span>
+              <Link to="/holo-rt4d">Spatial vision</Link>
+              <Link to="/model-library">Model library</Link>
+              <Link to="/adaptive-music">Beatbox & score</Link>
+            </div>
             <div className="jarvis-simple-sidebar-footer">
               <span><FiCpu /> {activeProviderLabel}</span>
-              <button type="button" onClick={() => setDenseCockpit(true)}><FiLayers /> Open tools</button>
+              <button type="button" onClick={() => setDenseCockpit(true)}><FiLayers /> Tools</button>
             </div>
           </aside>
         ) : null}
@@ -9300,6 +9306,15 @@ function JarvisConsole() {
                   title="Analyze an image with the active NVIDIA chat model"
                 >
                   <FiImage /> Image
+                </button>
+                <button
+                  type="button"
+                  className="jarvis-secondary-button"
+                  onClick={() => fileIntakeRef.current?.click()}
+                  disabled={sending || booting || fileIntakeBusy}
+                  title="Add a PDF, text file, or Markdown document to Jarvis intake"
+                >
+                  <FiFolder /> {fileIntakeBusy ? 'Adding…' : 'File'}
                 </button>
                 <button
                   type="button"
