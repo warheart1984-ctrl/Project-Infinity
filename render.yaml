@@ -100,6 +100,16 @@ services:
         generateValue: true
       # External S3 is optional. Omit its credentials in the default Blueprint;
       # platform.settings falls back to local/runtime-backed artifact handling.
+      # Empty source keys keep pre-existing Blueprint worker wiring resolvable
+      # while Render reconciles the removed optional S3 settings.
+      - key: PLATFORM_S3_ENDPOINT
+        value: ""
+      - key: PLATFORM_S3_BUCKET
+        value: ""
+      - key: PLATFORM_S3_ACCESS_KEY
+        value: ""
+      - key: PLATFORM_S3_SECRET_KEY
+        value: ""
 
   - type: worker
     name: platform-worker
