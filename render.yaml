@@ -34,6 +34,30 @@ envVarGroups:
         sync: false
       - key: GOOGLE_API_KEY
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      # Optional provider keys. These expose the corresponding adapter in the
+      # model picker only after the account owner supplies a key in Render.
+      # A provider's trial/free quota is controlled by that provider; AAIS
+      # never represents it as unlimited or guaranteed-free inference.
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: XAI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TOGETHER_API_KEY
+        sync: false
+      - key: FIREWORKS_API_KEY
+        sync: false
+      - key: PERPLEXITY_API_KEY
+        sync: false
+      - key: MOONSHOT_API_KEY
+        sync: false
+      - key: AI21_API_KEY
+        sync: false
       # NVIDIA NIM credentials are supplied in Render, never committed.
       - key: NVIDIA_API_KEY
         sync: false

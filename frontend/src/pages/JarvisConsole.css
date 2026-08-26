@@ -148,6 +148,20 @@
   gap: 0.75rem;
 }
 
+.jarvis-model-switcher-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.jarvis-model-library-link {
+  color: #5ce7ff;
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.jarvis-model-library-link:hover { text-decoration: underline; }
+
 .jarvis-model-switcher-head span {
   display: block;
   color: var(--muted);

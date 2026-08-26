@@ -9032,16 +9032,19 @@ function JarvisConsole() {
                 <span>Model</span>
                 <strong>{activeProviderLabel}</strong>
               </div>
-              <button
-                type="button"
-                className="jarvis-secondary-button"
-                onClick={() => refreshProviders()}
-                disabled={providersBusy}
-                aria-label="Refresh models"
-              >
-                <FiRefreshCw />
-                {providersBusy ? 'Refreshing…' : 'Refresh'}
-              </button>
+              <div className="jarvis-model-switcher-actions">
+                <Link to="/model-library" className="jarvis-model-library-link">Add models</Link>
+                <button
+                  type="button"
+                  className="jarvis-secondary-button"
+                  onClick={() => refreshProviders()}
+                  disabled={providersBusy}
+                  aria-label="Refresh models"
+                >
+                  <FiRefreshCw />
+                  {providersBusy ? 'Refreshing…' : 'Refresh'}
+                </button>
+              </div>
             </div>
             <div className="jarvis-model-switcher-row" role="group" aria-label="Switch model">
               {(denseCockpit ? availableProviders : selectableProviders).map((provider) => {
