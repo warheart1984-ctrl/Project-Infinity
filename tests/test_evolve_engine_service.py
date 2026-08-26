@@ -105,6 +105,18 @@ class _FakeSession:
 class TestEvolveEngineService(unittest.TestCase):
     """Verify the isolated evolve service behavior."""
 
+    def test_render_private_hostport_is_normalized(self):
+        tmp_dir = _make_runtime_dir("evolve-render-hostport")
+        try:
+            service = EvolveEngineService(
+                storage_root=tmp_dir,
+                forge_eval_base_url="aais-forge-eval:10000",
+                evaluator=_FakeEvaluator(),
+            )
+            self.assertEqual(service.forge_eval_base_url, "http://aais-forge-eval:10000")
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
     def test_evolve_records_history_and_mutation_halls(self):
         tmp_dir = _make_runtime_dir("evolve-engine")
         try:
