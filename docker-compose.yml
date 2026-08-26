@@ -22,9 +22,13 @@ services:
     # env_file: .env
     environment:
       PORT: "8000"
+      AAIS_DEPLOYMENT_MODE: full
       AAIS_RUNTIME_DIR: /app/.runtime/aais-data
       JARVIS_DATA_DIR: /app/.runtime/aais-data
       ENVIRONMENT: docker
+      FORGE_BASE_URL: http://forge:6060
+      FORGE_EVAL_BASE_URL: http://forge-eval:6061
+      EVOLVE_BASE_URL: http://evolve:6062
     volumes:
       - aais_runtime:/app/.runtime
     healthcheck:
@@ -33,6 +37,56 @@ services:
       timeout: 5s
       retries: 5
       start_period: 90s
+    depends_on:
+      forge:
+        condition: service_healthy
+      forge-eval:
+        condition: service_healthy
+      evolve:
+        condition: service_healthy
+
+  forge:
+    image: aais-api:local
+    command: python -m flask --app forge.main run --host 0.0.0.0 --port 6060
+    environment:
+      FORGE_STORAGE: /app/.runtime/forge
+    volumes:
+      - aais_runtime:/app/.runtime
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:6060/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  forge-eval:
+    image: aais-api:local
+    command: python -m flask --app forge_eval.main run --host 0.0.0.0 --port 6061
+    environment:
+      FORGE_EVAL_STORAGE: /app/.runtime/forge_eval
+    volumes:
+      - aais_runtime:/app/.runtime
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:6061/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  evolve:
+    image: aais-api:local
+    command: python -m flask --app evolve_engine.main run --host 0.0.0.0 --port 6062
+    environment:
+      EVOLVE_STORAGE: /app/.runtime/evolve
+      FORGE_EVAL_BASE_URL: http://forge-eval:6061
+    volumes:
+      - aais_runtime:/app/.runtime
+    depends_on:
+      forge-eval:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:6062/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
 
   # Uses landed frontend/Dockerfile + nginx/default.conf.template (do not fork).
   # Frontend-only: docker-compose -f frontend/docker-compose.yml up --build

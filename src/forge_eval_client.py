@@ -68,6 +68,9 @@ class ForgeEvalClient:
         payload: dict[str, Any],
         task_id: str | None = None,
     ) -> dict[str, Any]:
+        if os.getenv("AAIS_DEPLOYMENT_MODE", "full").strip().lower() == "demo":
+            raise RuntimeError("ForgeEval execution is disabled in demo deployment mode; no request was sent.")
+
         normalized_mode = str(mode or "").strip()
         if normalized_mode not in VALID_MODES:
             raise ValueError(f"Unsupported ForgeEval mode: {mode}")

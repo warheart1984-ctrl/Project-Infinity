@@ -69,6 +69,9 @@ class EvolveClient:
         job_id: str | None = None,
         jarvis_run_id: str | None = None,
     ) -> dict[str, Any]:
+        if os.getenv("AAIS_DEPLOYMENT_MODE", "full").strip().lower() == "demo":
+            raise RuntimeError("Evolve execution is disabled in demo deployment mode; no request was sent.")
+
         body = EvolutionRequest.model_validate(
             {
                 "job_id": str(job_id or f"evolve-{uuid.uuid4().hex[:12]}"),

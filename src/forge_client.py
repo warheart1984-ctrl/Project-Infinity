@@ -102,6 +102,9 @@ class ForgeClient:
     ) -> dict[str, Any]:
         """Send one contractor request to the isolated Forge service."""
 
+        if os.getenv("AAIS_DEPLOYMENT_MODE", "full").strip().lower() == "demo":
+            raise RuntimeError("Forge execution is disabled in demo deployment mode; no request was sent.")
+
         normalized_kind = str(kind or "").strip()
         if normalized_kind not in VALID_KINDS:
             raise ValueError(f"Unsupported Forge kind: {kind}")

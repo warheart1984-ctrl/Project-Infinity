@@ -263,9 +263,9 @@ def _serve_frontend_index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
-def _probe_contractor(name: str, port: int, path: str = "/health") -> dict:
+def _probe_contractor(name: str, base_url: str, path: str = "/health") -> dict:
     """Lightweight probe for optional contractors. Short timeout so health stays snappy."""
-    url = f"http://127.0.0.1:{port}{path}"
+    url = f"{base_url.rstrip('/')}{path}"
     if requests is None:
         return {"name": name, "url": url, "reachable": False, "error": "requests not installed"}
     try:
@@ -288,6 +288,27 @@ def _build_operator_health_payload() -> dict:
     legacy_ok = legacy_api_bridge.loaded and not legacy_api_bridge.load_error
     model_mode = os.getenv("AAIS_MODEL_MODE", "").strip().lower()
     strict_startup = model_mode not in ("mock", "") and os.getenv("AAIS_ALLOW_STARTUP_FALLBACK", "1").lower() not in ("1", "true", "yes", "on")
+    deployment_mode = os.getenv("AAIS_DEPLOYMENT_MODE", "full").strip().lower()
+    contractor_urls = {
+        "forge": os.getenv("FORGE_BASE_URL", "http://127.0.0.1:6060"),
+        "forge_eval": os.getenv("FORGE_EVAL_BASE_URL", "http://127.0.0.1:6061"),
+        "evolve": os.getenv("EVOLVE_BASE_URL", "http://127.0.0.1:6062"),
+    }
+    contractors = (
+        [
+            {
+                "name": name,
+                "url": url,
+                "reachable": False,
+                "status": "disabled",
+                "execution": "refused",
+                "reason": "contractor actions are disabled in demo deployment mode",
+            }
+            for name, url in contractor_urls.items()
+        ]
+        if deployment_mode == "demo"
+        else [_probe_contractor(name, url) for name, url in contractor_urls.items()]
+    )
     payload = {
         "status": "healthy" if legacy_ok else "degraded",
         "service": "AAIS Workflow Shell",
@@ -305,11 +326,8 @@ def _build_operator_health_payload() -> dict:
         "ai_fallback_active": False,
         "mock_mode_active": model_mode == "mock",
         "strict_startup": strict_startup,
-        "contractors": [
-            _probe_contractor("forge", 6060),
-            _probe_contractor("forge_eval", 6061),
-            _probe_contractor("evolve", 6062),
-        ],
+        "deployment_mode": deployment_mode,
+        "contractors": contractors,
     }
 
     try:
