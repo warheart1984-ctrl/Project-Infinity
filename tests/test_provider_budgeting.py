@@ -51,6 +51,19 @@ class TestProviderBudgeting(unittest.TestCase):
         self.assertEqual(report["system_message_count"], 1)
         self.assertGreater(report["prompt_tokens"], 0)
 
+    def test_muse_glimmer_preserves_visible_answer_headroom(self):
+        report = resolve_remote_output_budget(
+            provider_id="nvidia",
+            provider_model="meta/muse-glimmer-30b",
+            messages=[JarvisMessage(role="user", content="Give one concrete next step.")],
+            requested_output_budget=224,
+            prompt_token_budget=1600,
+            reply_budget_floor=224,
+        )
+
+        self.assertEqual(report["model_output_budget_floor"], 512)
+        self.assertEqual(report["effective_output_token_budget"], 512)
+
 
 if __name__ == "__main__":
     unittest.main()

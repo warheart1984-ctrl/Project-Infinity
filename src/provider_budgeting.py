@@ -120,7 +120,20 @@ def resolve_remote_output_budget(
     )
     prompt_tokens_estimate = int(estimate.get("prompt_tokens") or 0)
     prompt_overflow_tokens = max(0, prompt_tokens_estimate - prompt_token_budget)
-    effective_output_budget = max(32, requested_output_budget - prompt_overflow_tokens)
+    # Muse Glimmer consumes reasoning and visible answer tokens from the same
+    # allowance.  A conventional short-chat budget can therefore be exhausted
+    # before it emits user-visible text.  Preserve a modest answer headroom
+    # for this configured reasoning model without changing other providers.
+    model_id = str(provider_model or "").strip().lower()
+    model_output_budget_floor = (
+        512
+        if _normalize_provider(provider_id) == "nvidia" and "muse-glimmer" in model_id
+        else 32
+    )
+    effective_output_budget = max(
+        model_output_budget_floor,
+        requested_output_budget - prompt_overflow_tokens,
+    )
     return _wrap_ul_payload({
         "resolved_provider": _normalize_provider(provider_id),
         "provider_model": str(provider_model or "").strip() or None,
@@ -132,6 +145,7 @@ def resolve_remote_output_budget(
         "prompt_overflow_tokens": prompt_overflow_tokens,
         "requested_output_token_budget": requested_output_budget,
         "effective_output_token_budget": int(effective_output_budget),
+        "model_output_budget_floor": int(model_output_budget_floor),
         "reply_budget_floor": reply_budget_floor,
         "reply_floor_preserved": bool(effective_output_budget >= reply_budget_floor),
         "output_budget_clamped": bool(effective_output_budget < requested_output_budget),

@@ -7,6 +7,7 @@ from unittest.mock import patch
 from src.provider_registry import ProviderRegistry
 from src.providers.frontier_catalog import (
     FRONTIER_PROVIDER_SPECS,
+    _nvidia_extra_body,
     resolve_provider_alias,
 )
 from src.providers.registry_bootstrap import register_frontier_providers
@@ -23,6 +24,13 @@ class TestFrontierCatalog(unittest.TestCase):
         self.assertEqual(resolve_provider_alias("nemotron"), "nvidia")
         self.assertEqual(resolve_provider_alias("muse"), "nvidia")
         self.assertEqual(resolve_provider_alias("glimmer"), "nvidia")
+
+    def test_muse_glimmer_uses_short_reasoning_and_recommended_sampling(self):
+        with patch.dict(os.environ, {}, clear=False):
+            payload = _nvidia_extra_body("meta/muse-glimmer-30b")
+        self.assertEqual(payload["reasoning_effort"], "minimal")
+        self.assertEqual(payload["temperature"], 0.95)
+        self.assertEqual(payload["top_p"], 1.0)
 
     def test_register_frontier_providers_lists_nvidia_disabled_without_key(self):
         registry = ProviderRegistry.__new__(ProviderRegistry)
