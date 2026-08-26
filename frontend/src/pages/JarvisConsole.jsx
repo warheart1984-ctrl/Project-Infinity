@@ -8543,7 +8543,7 @@ function JarvisConsole() {
           <div>
             <h1>{profile.assistantName}</h1>
             <p>
-              {listening ? 'Listening…' : sending ? 'Thinking…' : `Model: ${activeProviderLabel}. Click a model chip to switch.`}
+              {listening ? 'Listening…' : sending ? 'Thinking…' : 'Your governed AI workspace'}
             </p>
           </div>
         </div>
@@ -8563,13 +8563,48 @@ function JarvisConsole() {
             onClick={() => setDenseCockpit(true)}
           >
             <FiLayers />
-            Full cockpit
+            Tools & workspace
           </button>
         </div>
       </section>
       )}
 
       <section className="jarvis-layout">
+        {!denseCockpit ? (
+          <aside className="jarvis-simple-sidebar page-panel">
+            <button
+              type="button"
+              className="jarvis-primary-button jarvis-new-chat-button"
+              onClick={() => createFreshSession(profile)}
+              disabled={booting || sending}
+            >
+              <FiPlus /> New chat
+            </button>
+            <div className="jarvis-simple-sidebar-head">
+              <span>Conversations</span>
+              <button type="button" onClick={refreshSessions} aria-label="Refresh conversations"><FiRefreshCw /></button>
+            </div>
+            <div className="jarvis-simple-session-list">
+              {recentSessions.length === 0 ? (
+                <p className="session-empty">Your new chats will appear here.</p>
+              ) : recentSessions.slice(0, 12).map((session) => (
+                <button
+                  key={session.session_id}
+                  type="button"
+                  className={`jarvis-simple-session ${session.session_id === sessionId ? 'active' : ''}`}
+                  onClick={() => handleLoadSession(session.session_id)}
+                >
+                  <strong>{session.current_goal || `Chat ${session.session_id.slice(0, 8)}`}</strong>
+                  <span>{formatRelativeTime(session.updated_at)}</span>
+                </button>
+              ))}
+            </div>
+            <div className="jarvis-simple-sidebar-footer">
+              <span><FiCpu /> {activeProviderLabel}</span>
+              <button type="button" onClick={() => setDenseCockpit(true)}><FiLayers /> Open tools</button>
+            </div>
+          </aside>
+        ) : null}
         {denseCockpit ? (
         <aside className="jarvis-tool-panel" id="jarvis-tool-layer">
           <div className="jarvis-side-card page-panel tool-layer-card">

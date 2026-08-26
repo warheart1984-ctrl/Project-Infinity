@@ -5,11 +5,11 @@
 }
 
 .jarvis-console--simple {
-  max-width: 880px;
+  max-width: 1240px;
 }
 
 .jarvis-console--simple .jarvis-layout {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: 238px minmax(0, 1fr);
 }
 
 .jarvis-console--simple .jarvis-chat-shell {
@@ -52,6 +52,63 @@
   gap: 0.6rem;
   flex-shrink: 0;
 }
+
+.jarvis-simple-sidebar {
+  min-height: min(70vh, 42rem);
+  padding: 0.85rem;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.jarvis-new-chat-button { width: 100%; justify-content: center; }
+
+.jarvis-simple-sidebar-head,
+.jarvis-simple-sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.jarvis-simple-sidebar-head button,
+.jarvis-simple-sidebar-footer button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.jarvis-simple-session-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+}
+
+.jarvis-simple-session {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 0.65rem 0.7rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.jarvis-simple-session:hover,
+.jarvis-simple-session.active { background: rgba(92, 231, 255, 0.09); border-color: rgba(92, 231, 255, 0.14); }
+.jarvis-simple-session strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; }
+.jarvis-simple-session span { display: block; margin-top: 0.25rem; color: var(--muted); font-size: 0.75rem; }
 
 .jarvis-model-switcher {
   padding: 0.85rem 1rem;
@@ -3626,6 +3683,10 @@
     order: 0;
     align-self: stretch;
   }
+
+  .jarvis-console--simple .jarvis-layout { grid-template-columns: 1fr; }
+  .jarvis-simple-sidebar { position: static; min-height: auto; }
+  .jarvis-simple-session-list { max-height: 12rem; }
 }
 
 @media (max-width: 860px) {
