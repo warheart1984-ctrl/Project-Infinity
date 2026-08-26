@@ -196,6 +196,11 @@ services:
           name: aais-evolve
           type: pserv
           property: hostport
+      - key: JARVIS_MEMORYBOARD_URL
+        fromService:
+          name: jarvis-memoryboard
+          type: pserv
+          property: hostport
       - key: PLATFORM_API_BASE_URL
         fromService:
           name: platform-api
@@ -263,6 +268,32 @@ services:
           name: aais-forge-eval
           type: pserv
           property: hostport
+
+  # Continuity Ledger: AMUL LTM substrate + governed EMR/STM activation.
+  # It is private on Render; agents access it through its REST API or the
+  # dependency-light stdio MCP wrapper in services/jarvis-memoryboard/mcp.
+  - type: pserv
+    name: jarvis-memoryboard
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./services/jarvis-memoryboard/Dockerfile
+    dockerContext: ./services/jarvis-memoryboard
+    dockerCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    disk:
+      name: jarvis-memoryboard-data
+      mountPath: /var/lib/jarvis-memoryboard
+      sizeGB: 1
+    envVars:
+      - key: JARVIS_STORE_PATH
+        value: /var/lib/jarvis-memoryboard/continuity-ledger.json
+      - key: JARVIS_AMUL_PATH
+        value: /var/lib/jarvis-memoryboard/amul-field.jsonl
+      - key: JARVIS_AMUL_GC_PATH
+        value: /var/lib/jarvis-memoryboard/amul-checkpoints.jsonl
+      - key: JARVIS_EMR_DYNAMICS_PATH
+        value: /var/lib/jarvis-memoryboard/emr-dynamics.json
 
   # Operator UI — static SPA (Render Option B). SPA rewrite covers /sovereign/*.
   # Docker FE (frontend/Dockerfile) is for compose/self-host — see frontend/docs/RENDER_DEPLOY.md.
