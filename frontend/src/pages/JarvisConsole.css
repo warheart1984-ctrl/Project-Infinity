@@ -620,6 +620,16 @@
   white-space: pre-wrap;
 }
 
+.jarvis-message-image {
+  display: block;
+  max-width: min(100%, 28rem);
+  max-height: 22rem;
+  margin-top: 0.75rem;
+  border: 1px solid rgba(92, 231, 255, 0.2);
+  border-radius: 16px;
+  object-fit: contain;
+}
+
 .jarvis-message.streaming .message-bubble {
   border-color: rgba(92, 231, 255, 0.24);
   box-shadow:
@@ -1051,6 +1061,37 @@
   gap: 0.9rem;
   padding-top: 0.35rem;
   border-top: 1px solid var(--outline);
+}
+
+.jarvis-image-attachment {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(92, 231, 255, 0.2);
+  border-radius: 16px;
+  background: rgba(92, 231, 255, 0.06);
+}
+
+.jarvis-image-attachment img {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.jarvis-image-attachment span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jarvis-image-attachment button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
 }
 
 .persona-mode-row {

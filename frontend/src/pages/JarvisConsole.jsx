@@ -9,6 +9,7 @@ import {
   FiCpu,
   FiFolder,
   FiGlobe,
+  FiImage,
   FiLayers,
   FiMic,
   FiMicOff,
@@ -6080,6 +6081,9 @@ function ConversationMessage({
           </>
         )}
         {content ? <p>{content}</p> : null}
+        {message.attachment?.dataUrl ? (
+          <img className="jarvis-message-image" src={message.attachment.dataUrl} alt={message.attachment.name || 'Attached image'} />
+        ) : null}
       </div>
     </article>
   );
@@ -6092,6 +6096,7 @@ function JarvisConsole() {
   const [recentSessions, setRecentSessions] = useState([]);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
+  const [imageAttachment, setImageAttachment] = useState(null);
   const [conversationLane, setConversationLane] = useState('chat');
   const [documents, setDocuments] = useState([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
@@ -6197,6 +6202,7 @@ function JarvisConsole() {
   const recognitionRef = useRef(null);
   const streamAbortRef = useRef(null);
   const fileIntakeRef = useRef(null);
+  const imageAttachmentRef = useRef(null);
   const selectedSpecialistsRef = useRef([]);
   const selectedSpecialistPresetRef = useRef(null);
 
@@ -7213,9 +7219,33 @@ function JarvisConsole() {
     }
   };
 
+  const handleImageAttachment = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Choose a PNG, JPEG, or WebP image.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Images for chat analysis must be smaller than 5 MB.');
+      return;
+    }
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Could not read that image.'));
+      reader.readAsDataURL(file);
+    }).catch((error) => {
+      toast.error(getApiErrorMessage(error, 'Could not read that image.'));
+      return null;
+    });
+    if (dataUrl) setImageAttachment({ name: file.name, dataUrl });
+  };
+
   const handleSend = async (nextMessage) => {
     const text = (nextMessage ?? draft).trim();
-    if (!text || sending || booting) {
+    if ((!text && !imageAttachment) || sending || booting) {
       return;
     }
 
@@ -7228,10 +7258,12 @@ function JarvisConsole() {
       id: `user-${Date.now()}`,
       role: 'user',
       content: text,
+      attachment: imageAttachment,
       timestamp: new Date().toISOString(),
     };
 
     setDraft('');
+    setImageAttachment(null);
     setSending(true);
     const assistantTurnId = `assistant-${Date.now()}-stream`;
     setMessages((current) => [
@@ -7293,6 +7325,7 @@ function JarvisConsole() {
         `/api/chat/sessions/${activeSessionId}/stream`,
         {
           message: text,
+          image_attachment: imageAttachment ? { name: imageAttachment.name, data_url: imageAttachment.dataUrl } : undefined,
           use_research: profile.liveResearchEnabled,
           persona_mode: profile.personaMode,
           response_mode: profile.responseMode,
@@ -8696,6 +8729,13 @@ function JarvisConsole() {
             className="jarvis-hidden-input"
             onChange={handleFileIntake}
           />
+          <input
+            ref={imageAttachmentRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="jarvis-hidden-input"
+            onChange={handleImageAttachment}
+          />
 
           {denseCockpit ? (
           <div className="jarvis-context-card jarvis-intake-card">
@@ -8981,6 +9021,13 @@ function JarvisConsole() {
           </div>
 
           <div className="jarvis-compose">
+            {imageAttachment ? (
+              <div className="jarvis-image-attachment">
+                <img src={imageAttachment.dataUrl} alt={imageAttachment.name} />
+                <span>{imageAttachment.name}</span>
+                <button type="button" onClick={() => setImageAttachment(null)}>Remove</button>
+              </div>
+            ) : null}
             <textarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -9210,6 +9257,15 @@ function JarvisConsole() {
                 )}
               </div>
               <div className="compose-button-cluster">
+                <button
+                  type="button"
+                  className="jarvis-secondary-button"
+                  onClick={() => imageAttachmentRef.current?.click()}
+                  disabled={sending || booting || conversationLane === 'documents'}
+                  title="Analyze an image with the active NVIDIA chat model"
+                >
+                  <FiImage /> Image
+                </button>
                 <button
                   type="button"
                   className="jarvis-secondary-button"
