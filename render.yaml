@@ -175,6 +175,12 @@ services:
         value: production
       - key: AAIS_DEPLOYMENT_MODE
         value: full
+      # Select the configured NVIDIA provider at process startup. The API key
+      # itself comes only from the Render-managed aais-provider-keys group.
+      - key: AAIS_MODEL_MODE
+        value: real
+      - key: AAIS_BOOTSTRAP_REAL_AT_STARTUP
+        value: "1"
       - key: FORGE_BASE_URL
         fromService:
           name: aais-forge
