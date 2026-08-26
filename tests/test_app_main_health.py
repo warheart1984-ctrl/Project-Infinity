@@ -21,6 +21,17 @@ class TestCanonicalHealth(unittest.TestCase):
         self.assertIn("post", paths["/api/memory/write"])
         self.assertNotIn("/chat", paths)
         self.assertNotIn("/chat/stream", paths)
+        self.assertIn("/sovereign/state", paths)
+
+    def test_sovereign_state_is_read_only_and_reports_runtime_persistence(self):
+        with TestClient(app_main.app) as client:
+            response = client.get("/sovereign/state")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["service"], "AAIS Sovereign State")
+        self.assertIn("persistence", payload)
+        self.assertTrue(payload["persistence"]["requires_persistent_disk"])
 
     def test_shell_jarvis_route_proxies_to_legacy_runtime(self):
         with patch.object(
@@ -105,16 +116,20 @@ class TestCanonicalHealth(unittest.TestCase):
             dreamspace=types.SimpleNamespace(snapshot=lambda limit_dreams=2: {"status": "stopped"}),
         )
 
-        with patch("app.main.importlib.import_module", return_value=fake_legacy_api):
+        with patch("app.main.importlib.import_module", return_value=fake_legacy_api), patch.object(
+            app_main.legacy_api_bridge,
+            "loaded",
+            True,
+        ), patch.object(app_main.legacy_api_bridge, "load_error", None):
             payload = app_main._build_operator_health_payload()
 
         self.assertEqual(payload["status"], "healthy")
-        self.assertEqual(payload["service"], "AAIS Multi-Modal AI")
+        self.assertEqual(payload["service"], "AAIS Workflow Shell")
         self.assertEqual(payload["active_model_mode"], "real")
         self.assertEqual(payload["ai_status"], "initialized")
         self.assertEqual(bootstrap_calls, ["canonical_health"])
-        self.assertIn("system_guard", payload)
-        self.assertIn("dreamspace", payload)
+        self.assertNotIn("system_guard", payload)
+        self.assertNotIn("dreamspace", payload)
 
     def test_build_operator_health_payload_degrades_cleanly_when_legacy_runtime_is_unavailable(self):
         with patch("app.main.importlib.import_module", side_effect=RuntimeError("legacy bridge unavailable")):

@@ -31,6 +31,20 @@ def test_genome_boot_warn_mode(monkeypatch):
     Alt4Runtime.boot_validate()
 
 
+def test_registry_resolves_legacy_windows_repository_reference(tmp_path):
+    from src.governance_organs.genome_engine import resolve_registry_path
+
+    proof = tmp_path / "docs" / "proof" / "platform" / "receipt.md"
+    proof.parent.mkdir(parents=True)
+    proof.write_text("proof", encoding="utf-8")
+
+    resolved = resolve_registry_path(tmp_path, r"E:\project-infi\docs\proof\platform\receipt.md")
+
+    assert resolved == proof
+    assert resolve_registry_path(tmp_path, r"C:\outside\secret.txt") is None
+    assert resolve_registry_path(tmp_path, "../outside.txt") is None
+
+
 def test_promotion_evaluate_recipe_module():
     from src.governance_organs.promotion_engine import PromotionEngine
 

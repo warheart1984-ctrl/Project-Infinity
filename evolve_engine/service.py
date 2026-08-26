@@ -32,6 +32,15 @@ class ForgeEvalUnavailableError(RuntimeError):
     """Raised when ForgeEval cannot be reached or returns an invalid contract."""
 
 
+def _normalize_http_base_url(value: str) -> str:
+    """Accept Render private ``host:port`` values as well as full URLs."""
+
+    base_url = str(value).strip().rstrip("/")
+    if base_url and "://" not in base_url:
+        base_url = f"http://{base_url}"
+    return base_url
+
+
 class ForgeEvalCaller:
     """Small HTTP evaluator transport used by EvolveEngine."""
 
@@ -42,7 +51,7 @@ class ForgeEvalCaller:
         session: requests.sessions.Session | Any | None = None,
         timeout_seconds: float = 30.0,
     ) -> None:
-        self.base_url = str(base_url).rstrip("/")
+        self.base_url = _normalize_http_base_url(base_url)
         self.session = session or requests.Session()
         self.timeout_seconds = float(timeout_seconds)
 
@@ -105,9 +114,9 @@ class EvolveEngineService:
             or (Path.cwd() / ".runtime" / "evolve_engine")
         ).expanduser().resolve()
         self.storage_root.mkdir(parents=True, exist_ok=True)
-        self.forge_eval_base_url = str(
+        self.forge_eval_base_url = _normalize_http_base_url(
             forge_eval_base_url or os.getenv("FORGE_EVAL_BASE_URL") or "http://127.0.0.1:6061"
-        ).rstrip("/")
+        )
         self.max_generations = max(1, int(os.getenv("EVOLVE_MAX_GENERATIONS", "6")))
         self.max_population = max(1, int(os.getenv("EVOLVE_MAX_POPULATION", "6")))
         self.max_evaluations = max(1, int(os.getenv("EVOLVE_MAX_EVALUATIONS", "30")))

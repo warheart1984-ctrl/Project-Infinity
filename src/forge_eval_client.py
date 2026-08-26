@@ -39,9 +39,8 @@ class ForgeEvalClient:
         session: requests.sessions.Session | Any | None = None,
         timeout_seconds: float | None = None,
     ) -> None:
-        self.base_url = (
-            str(base_url or os.getenv("FORGE_EVAL_BASE_URL") or "http://127.0.0.1:6061").rstrip("/")
-        )
+        configured_url = str(base_url or os.getenv("FORGE_EVAL_BASE_URL") or "http://127.0.0.1:6061")
+        self.base_url = (configured_url if "://" in configured_url else f"http://{configured_url}").rstrip("/")
         self.timeout_seconds = float(
             timeout_seconds
             if timeout_seconds is not None
@@ -68,6 +67,9 @@ class ForgeEvalClient:
         payload: dict[str, Any],
         task_id: str | None = None,
     ) -> dict[str, Any]:
+        if os.getenv("AAIS_DEPLOYMENT_MODE", "full").strip().lower() == "demo":
+            raise RuntimeError("ForgeEval execution is disabled in demo deployment mode; no request was sent.")
+
         normalized_mode = str(mode or "").strip()
         if normalized_mode not in VALID_MODES:
             raise ValueError(f"Unsupported ForgeEval mode: {mode}")

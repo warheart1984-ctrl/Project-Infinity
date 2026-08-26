@@ -70,7 +70,6 @@ services:
     dockerfilePath: ./deploy/platform/Dockerfile
     dockerContext: .
     dockerCommand: python -m platform serve --host 0.0.0.0 --port $PORT
-    healthCheckPath: /v1/health
     disk:
       name: platform-runtime
       mountPath: /app/.runtime
@@ -99,14 +98,18 @@ services:
         generateValue: true
       - key: PLATFORM_EXCHANGE_SECRET
         generateValue: true
+      # External S3 is optional. Omit its credentials in the default Blueprint;
+      # platform.settings falls back to local/runtime-backed artifact handling.
+      # Empty source keys keep pre-existing Blueprint worker wiring resolvable
+      # while Render reconciles the removed optional S3 settings.
       - key: PLATFORM_S3_ENDPOINT
-        sync: false
+        value: ""
       - key: PLATFORM_S3_BUCKET
-        sync: false
+        value: ""
       - key: PLATFORM_S3_ACCESS_KEY
-        sync: false
+        value: ""
       - key: PLATFORM_S3_SECRET_KEY
-        sync: false
+        value: ""
 
   - type: worker
     name: platform-worker
@@ -138,26 +141,6 @@ services:
           name: platform-api
           type: pserv
           envVarKey: PLATFORM_MASTER_API_KEY
-      - key: PLATFORM_S3_ENDPOINT
-        fromService:
-          name: platform-api
-          type: pserv
-          envVarKey: PLATFORM_S3_ENDPOINT
-      - key: PLATFORM_S3_BUCKET
-        fromService:
-          name: platform-api
-          type: pserv
-          envVarKey: PLATFORM_S3_BUCKET
-      - key: PLATFORM_S3_ACCESS_KEY
-        fromService:
-          name: platform-api
-          type: pserv
-          envVarKey: PLATFORM_S3_ACCESS_KEY
-      - key: PLATFORM_S3_SECRET_KEY
-        fromService:
-          name: platform-api
-          type: pserv
-          envVarKey: PLATFORM_S3_SECRET_KEY
 
   # Public AAIS API — Jarvis / task-bus / OAuth / middleware plugs
   # aais-middleware Node package is NOT a separate Render service (Python host owns HTTP).
@@ -168,7 +151,7 @@ services:
     plan: starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: sh -c "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    dockerCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     disk:
       name: aais-runtime
@@ -185,6 +168,23 @@ services:
         value: /app/.runtime/aais-data
       - key: ENVIRONMENT
         value: production
+      - key: AAIS_DEPLOYMENT_MODE
+        value: full
+      - key: FORGE_BASE_URL
+        fromService:
+          name: aais-forge
+          type: pserv
+          property: hostport
+      - key: FORGE_EVAL_BASE_URL
+        fromService:
+          name: aais-forge-eval
+          type: pserv
+          property: hostport
+      - key: EVOLVE_BASE_URL
+        fromService:
+          name: aais-evolve
+          type: pserv
+          property: hostport
       - key: PLATFORM_API_BASE_URL
         fromService:
           name: platform-api
@@ -198,13 +198,67 @@ services:
       - key: APP_BEARER_TOKEN
         sync: false
 
+  # Internal contractor services. They have no public URLs; only aais-api can
+  # reach them through Render's private host:port addresses.
+  - type: pserv
+    name: aais-forge
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python -m flask --app forge.main run --host 0.0.0.0 --port $PORT
+    disk:
+      name: forge-runtime
+      mountPath: /app/.runtime
+      sizeGB: 1
+    envVars:
+      - key: FORGE_STORAGE
+        value: /app/.runtime/forge
+
+  - type: pserv
+    name: aais-forge-eval
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python -m flask --app forge_eval.main run --host 0.0.0.0 --port $PORT
+    disk:
+      name: forge-eval-runtime
+      mountPath: /app/.runtime
+      sizeGB: 1
+    envVars:
+      - key: FORGE_EVAL_STORAGE
+        value: /app/.runtime/forge_eval
+
+  - type: pserv
+    name: aais-evolve
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python -m flask --app evolve_engine.main run --host 0.0.0.0 --port $PORT
+    disk:
+      name: evolve-runtime
+      mountPath: /app/.runtime
+      sizeGB: 1
+    envVars:
+      - key: EVOLVE_STORAGE
+        value: /app/.runtime/evolve
+      - key: FORGE_EVAL_BASE_URL
+        fromService:
+          name: aais-forge-eval
+          type: pserv
+          property: hostport
+
   # Operator UI — static SPA (Render Option B). SPA rewrite covers /sovereign/*.
   # Docker FE (frontend/Dockerfile) is for compose/self-host — see frontend/docs/RENDER_DEPLOY.md.
   # Set VITE_API_BASE_URL=https://<aais-api>.onrender.com after first API deploy (build-time).
   - type: web
     name: aais-frontend
     runtime: static
-    region: oregon
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: ./frontend/build
     routes:

@@ -62,9 +62,8 @@ class ForgeClient:
         session: requests.sessions.Session | Any | None = None,
         timeout_seconds: float | None = None,
     ) -> None:
-        self.base_url = (
-            str(base_url or os.getenv("FORGE_BASE_URL") or "http://127.0.0.1:6060").rstrip("/")
-        )
+        configured_url = str(base_url or os.getenv("FORGE_BASE_URL") or "http://127.0.0.1:6060")
+        self.base_url = (configured_url if "://" in configured_url else f"http://{configured_url}").rstrip("/")
         self.timeout_seconds = float(
             timeout_seconds
             if timeout_seconds is not None
@@ -101,6 +100,9 @@ class ForgeClient:
         task_id: str | None = None,
     ) -> dict[str, Any]:
         """Send one contractor request to the isolated Forge service."""
+
+        if os.getenv("AAIS_DEPLOYMENT_MODE", "full").strip().lower() == "demo":
+            raise RuntimeError("Forge execution is disabled in demo deployment mode; no request was sent.")
 
         normalized_kind = str(kind or "").strip()
         if normalized_kind not in VALID_KINDS:
