@@ -14,6 +14,7 @@ import {
 import {
   getConflictPolicy,
   mapOperatorAskToTaskBusPayload,
+  parseVisualIntelligenceHandoff,
 } from '../pages/sovereign/lib/sovereignDispatch';
 import {
   buildInlineCards,
@@ -103,10 +104,12 @@ export function useTaskBus(opts: UseTaskBusOptions): UseTaskBusResult {
 
   const dispatchAsk = useCallback(
     async (text: string): Promise<DispatchOutcome> => {
+      const handoff = parseVisualIntelligenceHandoff(text);
+      const displayText = handoff.matched ? handoff.body : text;
       const userMessage: Message = {
         id: newId('msg'),
         role: 'user',
-        text,
+        text: displayText,
         createdAt: new Date().toISOString(),
       };
       setLoading(true);
@@ -237,3 +240,5 @@ export function useTaskBus(opts: UseTaskBusOptions): UseTaskBusResult {
 }
 
 export default useTaskBus;
+
+export { parseVisualIntelligenceHandoff };

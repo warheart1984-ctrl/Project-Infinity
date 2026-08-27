@@ -85,6 +85,8 @@ wheels/
 .venv-py314-backup/
 
 # Local data artifacts
+runtime/bin/
+runtime/models/
 data/models/
 data/datasets/
 training/out/

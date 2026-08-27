@@ -15,6 +15,8 @@ from werkzeug.serving import make_server
 
 ROOT = Path(__file__).resolve().parents[1]
 REX_ROOT = ROOT.parent / "reasoning-exchange-node"
+if not REX_ROOT.is_dir():
+    raise unittest.SkipTest("reasoning-exchange-node sibling checkout is unavailable")
 sys.path.insert(0, str(ROOT))
 
 from flask import Flask

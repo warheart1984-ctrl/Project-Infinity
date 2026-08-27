@@ -375,6 +375,14 @@ export async function runRequest(
     tags: request.intent.tags,
     embedding: request.embeddingMeta || { backend: "regex" },
   });
+  if ((request.intent.tags ?? []).includes("visual_intelligence")) {
+    decisionEvents.push({
+      event: "visual_intelligence_handoff",
+      reasonCode: "TASK_BUS_VISUAL_INTELLIGENCE_HANDOFF",
+      source: "VisualIntelligenceHandoffAdapter",
+    });
+    reasonCodes.push("TASK_BUS_VISUAL_INTELLIGENCE_HANDOFF");
+  }
   evidenceStore.seal(
     {
       requestId: request.requestId,

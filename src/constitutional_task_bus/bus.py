@@ -108,6 +108,15 @@ class ConstitutionalTaskBus:
 
         # 1) Intent
         intent = self.parser.classify(text, hints=hints)
+        effective_text = str(intent.get("text") or text).strip()
+        if intent.get("handoff"):
+            decision_events.append(
+                {
+                    "event": "visual_intelligence_handoff",
+                    "reason_code": "TASK_BUS_VISUAL_INTELLIGENCE_HANDOFF",
+                    "source": "VisualIntelligenceHandoffAdapter",
+                }
+            )
         decision_events.append(
             {
                 "event": "intent_classified",
@@ -199,11 +208,13 @@ class ConstitutionalTaskBus:
                 or "run"
             )
             lane_payload = {
-                "text": text,
-                "prompt": text,
+                "text": effective_text,
+                "prompt": effective_text,
                 "skill_id": body.get("skill_id"),
                 **dict(body.get("lane_payload") or {}),
             }
+            if lane_id == "picture_generation" and intent.get("pictures"):
+                lane_payload["pictures"] = list(intent.get("pictures") or [])
             result = adapter.execute(
                 action=action,
                 payload=lane_payload,

@@ -9,6 +9,49 @@
 const STORAGE_CONFLICT = 'aais-graph-sync-conflict-policy';
 const STORAGE_FORCE_DEMO = 'sovereign-assistant-force-demo';
 
+export const VISUAL_CREATION_COMPLETE_TOKEN =
+  'render visual generate image picture perfection no upgrade no fixes create what is described';
+
+/**
+ * Detect visual-intelligence handoff token (suffix, case-insensitive).
+ * Strips token from body — never show raw token to operator.
+ * @param {string} text
+ * @returns {{ matched: boolean, body: string, intent?: object, pictures?: object[] }}
+ */
+export function parseVisualIntelligenceHandoff(text) {
+  const normalized = String(text || '').trim();
+  const lower = normalized.toLowerCase();
+  const tokenLower = VISUAL_CREATION_COMPLETE_TOKEN.toLowerCase();
+  if (!lower.endsWith(tokenLower)) {
+    return { matched: false, body: normalized };
+  }
+  const body = normalized
+    .slice(0, normalized.length - VISUAL_CREATION_COMPLETE_TOKEN.length)
+    .trim();
+  if (!body) {
+    return { matched: false, body: normalized };
+  }
+  const pictureId = `vi-${Date.now().toString(36)}`;
+  return {
+    matched: true,
+    body,
+    intent: {
+      raw: body,
+      type: 'picture',
+      tags: ['visual_intelligence', 'authorized'],
+    },
+    pictures: [
+      {
+        id: pictureId,
+        action: 'make_picture',
+        target: body,
+        engine: 'aais_image',
+        params: { source: 'visual_intelligence_handoff' },
+      },
+    ],
+  };
+}
+
 export const CONFLICT_POLICIES = ['prefer_aais', 'prefer_graph', 'report'];
 
 export function getConflictPolicy() {
@@ -64,22 +107,29 @@ export function inferTaskHints(text) {
  * @param {{ forceDemo?: boolean, riskLevel?: string, sessionId?: string, conflictPolicy?: string }} [opts]
  */
 export function mapOperatorAskToTaskBusPayload(ask, opts = {}) {
-  const text = String(ask || '').trim();
+  const handoff = parseVisualIntelligenceHandoff(ask);
+  const text = handoff.matched ? handoff.body : String(ask || '').trim();
   const forceDemo = opts.forceDemo ?? getForceDemoDefault();
   const riskLevel = opts.riskLevel || 'normal';
   const hints = inferTaskHints(text);
-  const wantsTask = /task|todo|to-do|follow[- ]?up|remind|schedule|sync|crm|microsoft/.test(
-    text.toLowerCase(),
-  );
+  const wantsTask =
+    !handoff.matched &&
+    /task|todo|to-do|follow[- ]?up|remind|schedule|sync|crm|microsoft/.test(
+      text.toLowerCase(),
+    );
 
   const payload = {
-    intent: text,
+    intent: handoff.matched ? handoff.intent : text,
     text,
     context: { user: 'operator', session: opts.sessionId || 'sovereign-assistant' },
     policy: { riskLevel },
     forceDemo,
     force_demo: forceDemo,
   };
+
+  if (handoff.matched && handoff.pictures?.length) {
+    payload.pictures = handoff.pictures;
+  }
 
   if (wantsTask || hints.tags.includes('crm') || hints.syncGraph) {
     payload.tasks = [

@@ -4,6 +4,12 @@
  */
 import type { IntentType } from "./interfaces.js";
 
+export {
+  VISUAL_CREATION_COMPLETE_TOKEN,
+  parseVisualIntelligenceHandoff,
+} from "./visual_intelligence_handoff.js";
+export type { VisualIntelligenceHandoffResult } from "./visual_intelligence_handoff.js";
+
 const TASK_RE = /\b(plan|todo|task|calendar|schedule|email|week|remind|follow[- ]?up)\b/i;
 const SKILL_RE = /\b(write|code|skill|tool|script|implement|chatgpt|build)\b/i;
 const WORKFLOW_RE = /\bworkflow\b/i;

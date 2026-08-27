@@ -95,10 +95,12 @@ class TestApiInitialization(unittest.TestCase):
         shutil.rmtree(self.guard_root, ignore_errors=True)
 
     @patch("src.api._get_model_mode", return_value="real")
+    @patch("src.api._configured_remote_providers", return_value=[])
     @patch("src.api._load_module")
     def test_init_ai_preloads_text_model_for_streaming(
         self,
         mock_load_module,
+        mock_configured_remote_providers,
         mock_get_model_mode,
     ):
         """Streaming should be created only after the text model is ready."""
@@ -128,6 +130,7 @@ class TestApiInitialization(unittest.TestCase):
             device=fake_ai_model.device,
         )
         self.assertEqual(api.ai_mode, "real")
+        mock_configured_remote_providers.assert_called_once_with()
         mock_get_model_mode.assert_called_once_with()
 
     @patch("src.api._get_model_mode", return_value="real")
@@ -1094,6 +1097,18 @@ class TestApiInitialization(unittest.TestCase):
 
     def test_jarvis_protocol_endpoint_matches_preview_truth(self):
         """The API should expose the exact same canonical evaluation produced by the modular preview."""
+        def without_timestamps(value):
+            """Compare preview semantics without per-evaluation trace timestamps."""
+            if isinstance(value, dict):
+                return {
+                    key: without_timestamps(child)
+                    for key, child in value.items()
+                    if key not in {"timestamp", "evaluated_at"}
+                }
+            if isinstance(value, list):
+                return [without_timestamps(child) for child in value]
+            return value
+
         session_id = conversation_memory.create_session(system_prompt="You are Jarvis.")
         session = conversation_memory.get_session(session_id)
         session.add_turn("user", "Keep Jarvis modular and inspectable.")
@@ -1136,7 +1151,10 @@ class TestApiInitialization(unittest.TestCase):
         self.assertEqual(payload["override_result"], expected_preview["override_result"])
         self.assertEqual(payload["escalation_result"], expected_preview["escalation_result"])
         self.assertEqual(payload["active_doctrine_tags"], expected_preview["active_doctrine_tags"])
-        self.assertEqual(payload["reasoning_packet"], expected_preview["reasoning_packet"])
+        self.assertEqual(
+            without_timestamps(payload["reasoning_packet"]),
+            without_timestamps(expected_preview["reasoning_packet"]),
+        )
         self.assertEqual(payload["reasoning_summary"], expected_preview["reasoning_summary"])
         self.assertEqual(
             payload["canonical_guardrail_evaluation"]["id"],
@@ -1390,10 +1408,12 @@ class TestApiInitialization(unittest.TestCase):
             self.assertEqual(api._coerce_temperature("-1"), 0.0)
 
     @patch("src.api._get_model_mode", return_value="real")
+    @patch("src.api._configured_remote_providers", return_value=[])
     @patch("src.api._load_module")
     def test_init_ai_failure_resets_partial_state(
         self,
         mock_load_module,
+        mock_configured_remote_providers,
         mock_get_model_mode,
     ):
         """A failed real-model boot should not leave stale partial globals behind."""
@@ -1419,12 +1439,15 @@ class TestApiInitialization(unittest.TestCase):
         self.assertIsNone(api.ai_mode)
         self.assertEqual(api.ai_init_error, "protobuf missing")
         mock_get_model_mode.assert_called_once_with()
+        mock_configured_remote_providers.assert_called_once_with()
 
     @patch("src.api._get_model_mode", return_value="real")
+    @patch("src.api._configured_remote_providers", return_value=[])
     @patch("src.api._load_module")
     def test_init_ai_is_singleton_under_parallel_calls(
         self,
         mock_load_module,
+        mock_configured_remote_providers,
         mock_get_model_mode,
     ):
         """Parallel init requests should share one model bootstrap."""
@@ -1480,6 +1503,7 @@ class TestApiInitialization(unittest.TestCase):
             tokenizer=fake_ai_model.text_tokenizer,
             device=fake_ai_model.device,
         )
+        mock_configured_remote_providers.assert_called_once_with()
         mock_get_model_mode.assert_called_once_with()
 
 class TestChatApi(unittest.TestCase):
