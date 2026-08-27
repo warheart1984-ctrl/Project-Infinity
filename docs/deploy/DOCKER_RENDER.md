@@ -52,6 +52,7 @@ docker compose -f frontend/docker-compose.yml up --build
 ## Render Blueprint
 
 1. Push branch → Render **New → Blueprint** → `render.yaml`.
+   - Note: `pserv` (private services) cannot use `healthCheckPath` — only `web` services may.
 2. Deploy **aais-api**; note `https://…onrender.com`.
 3. Configure **aais-frontend** (static Blueprint Option B; health via CDN):
    - `VITE_API_BASE_URL=https://<aais-api-host>` (required on Render — no `/api` proxy)

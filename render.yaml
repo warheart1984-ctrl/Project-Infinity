@@ -304,7 +304,6 @@ services:
     dockerfilePath: ./services/jarvis-memoryboard/Dockerfile
     dockerContext: ./services/jarvis-memoryboard
     dockerCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /health
     disk:
       name: jarvis-memoryboard-data
       mountPath: /var/lib/jarvis-memoryboard
