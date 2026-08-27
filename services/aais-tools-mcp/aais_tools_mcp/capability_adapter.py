@@ -18,7 +18,7 @@ from aais_tools_mcp.tools import AaisOperatorToolCatalog
 
 
 class AaisOperatorToolsCapability:
-    """Thin local adapter so Jarvis/AAIS can invoke tools before an MCP client exists."""
+    """Thin local adapter so Jarvis/AAIS can invoke tools without stdio MCP."""
 
     capability_id = "aais_operator_tools"
     display_name = "AAIS Operator Tools"
