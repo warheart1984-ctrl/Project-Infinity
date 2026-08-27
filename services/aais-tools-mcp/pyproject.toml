@@ -1,0 +1,19 @@
+[project]
+name = "aais-tools-mcp"
+version = "0.1.0"
+description = "Governed MCP server for AAIS / Jarvis workspace read, write, search, and allowlisted tests"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+aais-tools-mcp = "aais_tools_mcp.server:main"
+
+[tool.setuptools.packages.find]
+include = ["aais_tools_mcp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

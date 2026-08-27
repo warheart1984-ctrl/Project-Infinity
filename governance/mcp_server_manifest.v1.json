@@ -1,5 +1,33 @@
 {
   "mcp_server_manifest_version": "mcp_server_manifest.v1",
   "generated_by": "manual",
-  "servers": {}
+  "servers": {
+    "aais-tools-mcp": {
+      "server_id": "aais-tools-mcp",
+      "display_name": "AAIS Operator Tools MCP",
+      "transport": "stdio",
+      "command": "python",
+      "args": ["-m", "aais_tools_mcp"],
+      "cwd": "services/aais-tools-mcp",
+      "env_keys": [
+        "AAIS_WORKSPACE_ROOT",
+        "AAIS_TOOLS_MCP_ALLOW_WRITES",
+        "AAIS_JARVIS_TOOLS_MCP",
+        "AAIS_TOOLS_MCP_CMD",
+        "AAIS_TOOLS_MCP_TIMEOUT_SEC"
+      ],
+      "tools": [
+        "read_file",
+        "write_file",
+        "apply_patch",
+        "list_dir",
+        "search_code",
+        "run_tests",
+        "git_status",
+        "git_diff"
+      ],
+      "writes_default": false,
+      "notes": "Governed workspace R/W + allowlisted tests; Jarvis prefers stdio when AAIS_JARVIS_TOOLS_MCP=1 (fail-open to local adapter). See services/aais-tools-mcp/README.md"
+    }
+  }
 }

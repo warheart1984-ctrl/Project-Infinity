@@ -193,6 +193,8 @@ services:
         value: "8000"
       - key: AAIS_RUNTIME_DIR
         value: /app/.runtime/aais-data
+      - key: AAIS_WORKSPACE_ROOT
+        value: /app
       - key: JARVIS_DATA_DIR
         value: /app/.runtime/aais-data
       - key: ENVIRONMENT
