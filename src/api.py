@@ -10,6 +10,7 @@ defined here.
 # Engineering: ApiEngine
 import asyncio
 import base64
+import binascii
 import gc
 import importlib
 import json
@@ -7137,6 +7138,58 @@ def _build_provider_messages(session, plan_summary=None, *, max_length=None, mod
     return generation["provider_messages"]
 
 
+_CHAT_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+
+def _validated_chat_image_attachment(payload: Any) -> dict[str, str] | None:
+    """Validate a browser-selected image without writing its bytes to session history."""
+    if payload in (None, ""):
+        return None
+    if not isinstance(payload, dict):
+        raise ValueError("Image attachment must be an image upload descriptor.")
+    data_url = str(payload.get("data_url") or "").strip()
+    match = re.fullmatch(r"data:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)", data_url)
+    if not match:
+        raise ValueError("Use a PNG, JPEG, or WebP image for chat analysis.")
+    try:
+        image_bytes = base64.b64decode(match.group(2), validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise ValueError("The selected image could not be decoded.") from exc
+    if not image_bytes or len(image_bytes) > _CHAT_IMAGE_MAX_BYTES:
+        raise ValueError("Images for chat analysis must be smaller than 5 MB.")
+    return {
+        "data_url": data_url,
+        "mime_type": match.group(1),
+        "name": str(payload.get("name") or "image")[:120],
+        "size_bytes": str(len(image_bytes)),
+    }
+
+
+def _add_active_image_to_provider_messages(session, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Attach the current image only to the outbound multimodal provider request."""
+    attachment = session.metadata.get("active_chat_image")
+    if not isinstance(attachment, dict) or not attachment.get("data_url"):
+        return messages
+    augmented = [dict(message) for message in messages]
+    for message in reversed(augmented):
+        if message.get("role") != "user":
+            continue
+        text = str(message.get("content") or "").strip() or "Please describe this image."
+        message["content"] = [
+            {"type": "text", "text": text},
+            {"type": "image_url", "image_url": {"url": attachment["data_url"]}},
+        ]
+        return augmented
+    augmented.append({
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "Please describe this image."},
+            {"type": "image_url", "image_url": {"url": attachment["data_url"]}},
+        ],
+    })
+    return augmented
+
+
 def _generate_remote_provider_reply(
     session,
     *,
@@ -7160,6 +7213,7 @@ def _generate_remote_provider_reply(
         model=ai_model,
         response_trace=session.metadata.get("response_trace"),
     )
+    messages = _add_active_image_to_provider_messages(session, messages)
     dispatch_trace = resolve_remote_output_budget(
         provider_id=provider_id,
         provider_model=routing_profile.get("provider_model") or getattr(provider, "model", None),
@@ -7180,14 +7234,18 @@ def _generate_remote_provider_reply(
         dispatch_trace,
     )
     dispatch_max_tokens = int(dispatch_trace.get("effective_output_token_budget") or max_length or 0)
-    response = asyncio.run(
-        provider.invoke(
-            messages,
-            max_tokens=dispatch_max_tokens,
-            temperature=temperature,
-            model=routing_profile.get("provider_model") or None,
+    try:
+        response = asyncio.run(
+            provider.invoke(
+                messages,
+                max_tokens=dispatch_max_tokens,
+                temperature=temperature,
+                model=routing_profile.get("provider_model") or None,
+            )
         )
-    )
+    finally:
+        # Never retain raw image data in the in-memory session or its archives.
+        session.metadata.pop("active_chat_image", None)
     _merge_provider_usage_into_dispatch_trace(
         session,
         session.metadata.get("response_trace"),
@@ -11065,7 +11123,7 @@ def run_v9_core():
             return jsonify(
                 {
                     "error": (
-                        "tool must be one of 'v9_core', 'v9', 'divine_core', or 'god_engine'"
+                        "tool must be one of 'v9_core' or 'v9'"
                     )
                 }
             ), 400
@@ -16359,7 +16417,13 @@ def chat_message(session_id):
         if error is not None:
             return error
         _bind_mechanic_case_from_payload(session, data)
-        user_message = data.get("message")
+        user_message = str(data.get("message") or "").strip()
+        try:
+            image_attachment = _validated_chat_image_attachment(data.get("image_attachment"))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        if image_attachment and not user_message:
+            user_message = "Please describe this image."
         use_research = bool(data["use_research"]) if "use_research" in data else None
         persona_mode = _set_session_persona_mode(session, data.get("persona_mode"))
         _set_session_preferred_provider(
@@ -16427,7 +16491,22 @@ def chat_message(session_id):
         # Add the new turn and generate from structured history.
         awaiting_approval = session.session_state.state == "awaiting_approval"
         pending_action = _load_pending_action(session) if awaiting_approval else None
-        session.add_turn("user", user_message)
+        if image_attachment:
+            session.metadata["active_chat_image"] = image_attachment
+        session.add_turn(
+            "user",
+            user_message,
+            metadata={
+                "image_attachment": (
+                    {
+                        "name": image_attachment["name"],
+                        "mime_type": image_attachment["mime_type"],
+                        "size_bytes": int(image_attachment["size_bytes"]),
+                    }
+                    if image_attachment else None
+                ),
+            },
+        )
         approval_execution = None
         if not companion_turn:
             approval_execution = _consume_pending_action_approval(
@@ -16989,7 +17068,13 @@ def chat_message_stream(session_id):
         if error is not None:
             return error
         _bind_mechanic_case_from_payload(session, data)
-        user_message = data.get("message")
+        user_message = str(data.get("message") or "").strip()
+        try:
+            image_attachment = _validated_chat_image_attachment(data.get("image_attachment"))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        if image_attachment and not user_message:
+            user_message = "Please describe this image."
         use_research = bool(data["use_research"]) if "use_research" in data else None
         persona_mode = _set_session_persona_mode(session, data.get("persona_mode"))
         _set_session_preferred_provider(
@@ -17059,7 +17144,18 @@ def chat_message_stream(session_id):
         _begin_turn_trace(session)
         awaiting_approval = session.session_state.state == "awaiting_approval"
         pending_action = _load_pending_action(session) if awaiting_approval else None
-        session.add_turn("user", user_message)
+        if image_attachment:
+            session.metadata["active_chat_image"] = image_attachment
+        session.add_turn(
+            "user",
+            user_message,
+            metadata={
+                "image_attachment": (
+                    {"name": image_attachment["name"], "mime_type": image_attachment["mime_type"], "size_bytes": int(image_attachment["size_bytes"])}
+                    if image_attachment else None
+                ),
+            },
+        )
         approval_execution = None
         if not companion_turn:
             approval_execution = _consume_pending_action_approval(

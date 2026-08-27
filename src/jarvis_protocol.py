@@ -67,7 +67,10 @@ def _normalize_channel(channel: str | None, role: str) -> str:
 @dataclass(slots=True)
 class ProtocolMessage:
     role: str
-    content: str
+    # OpenAI-compatible multimodal providers accept a list of content parts
+    # (for example text plus an image_url).  Keep that structure intact until
+    # the provider adapter serializes it instead of coercing it to a string.
+    content: Any
     channel: str = "dialogue"
     name: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -75,7 +78,7 @@ class ProtocolMessage:
     def to_dict(self) -> dict[str, Any]:
         payload = {
             "role": _normalize_role(self.role),
-            "content": str(self.content or ""),
+            "content": self.content if isinstance(self.content, list) else str(self.content or ""),
             "channel": _normalize_channel(self.channel, self.role),
         }
         if self.name:
@@ -84,7 +87,7 @@ class ProtocolMessage:
             payload["metadata"] = dict(self.metadata)
         return payload
 
-    def to_provider_message(self) -> dict[str, str]:
+    def to_provider_message(self) -> dict[str, Any]:
         payload = self.to_dict()
         return _wrap_ul_payload({
             "role": payload["role"],
@@ -100,7 +103,7 @@ class JarvisMessage(ProtocolMessage):
     def from_dict(cls, payload: dict[str, Any]) -> "JarvisMessage":
         return cls(
             role=str(payload.get("role") or "assistant"),
-            content=str(payload.get("content") or ""),
+            content=payload.get("content") if isinstance(payload.get("content"), list) else str(payload.get("content") or ""),
             channel=str(payload.get("channel") or "dialogue"),
             name=payload.get("name"),
             metadata=dict(payload.get("metadata") or {}),
@@ -115,7 +118,7 @@ class JarvisMessage(ProtocolMessage):
             role = "assistant"
         return _wrap_ul_payload({
             "role": role if role in {"user", "assistant"} else "user",
-            "content": str(self.content or ""),
+            "content": self.content if isinstance(self.content, list) else str(self.content or ""),
         })
 
 

@@ -9,6 +9,7 @@ import {
   FiCpu,
   FiFolder,
   FiGlobe,
+  FiImage,
   FiLayers,
   FiMic,
   FiMicOff,
@@ -789,7 +790,7 @@ function buildCapabilityInputFields(capabilityId, actionId) {
         required: true,
         default: normalizedCapabilityId === 'v10_core'
           ? 'continue the next scene beat and score whether the draft is strong enough to keep'
-          : 'continue the scene through the V9 Core',
+          : 'continue the scene through Narrative Studio',
         placeholder: 'Describe what you want this capability lane to do...',
       }),
       normalizeCapabilityField({
@@ -1064,8 +1065,8 @@ const DEFAULT_CAPABILITY_BRIDGE_SNAPSHOT = buildCapabilityBridgeSnapshot([
   },
   {
     id: 'v9_core',
-    label: 'V9 Core',
-    summary: 'Run the governed V9 narrative core for direct scene continuation.',
+    label: 'Narrative Studio',
+    summary: "Run Jarvis's governed narrative pipeline for direct scene continuation.",
     module: 'v9_core',
     actions: [{ id: 'generate_scene', label: 'Generate Scene', tool: 'v9_core', providers: ['llm'], modes: ['strict', 'assist', 'experimental'] }],
   },
@@ -3134,10 +3135,10 @@ function ToolResultCard({
     return (
       <div className={`jarvis-inline-card v10-inline-card ${toolResult.status === 'failed' ? 'action-failed' : ''}`}>
         <div className="jarvis-inline-card-header">
-          <span>V9 Core</span>
+          <span>Narrative Studio</span>
           <strong>{result.location || 'scene continuation'}</strong>
         </div>
-        <p>{toolResult.summary || 'V9 core completed.'}</p>
+        <p>{toolResult.summary || 'Narrative Studio completed.'}</p>
         <div className="jarvis-inline-meta">
           <span className={`inline-meta-chip ${toolResult.status === 'failed' ? 'danger' : 'success'}`}>
             {toolResult.status || 'completed'}
@@ -6080,6 +6081,9 @@ function ConversationMessage({
           </>
         )}
         {content ? <p>{content}</p> : null}
+        {message.attachment?.dataUrl ? (
+          <img className="jarvis-message-image" src={message.attachment.dataUrl} alt={message.attachment.name || 'Attached image'} />
+        ) : null}
       </div>
     </article>
   );
@@ -6092,6 +6096,7 @@ function JarvisConsole() {
   const [recentSessions, setRecentSessions] = useState([]);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
+  const [imageAttachment, setImageAttachment] = useState(null);
   const [conversationLane, setConversationLane] = useState('chat');
   const [documents, setDocuments] = useState([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
@@ -6197,6 +6202,7 @@ function JarvisConsole() {
   const recognitionRef = useRef(null);
   const streamAbortRef = useRef(null);
   const fileIntakeRef = useRef(null);
+  const imageAttachmentRef = useRef(null);
   const selectedSpecialistsRef = useRef([]);
   const selectedSpecialistPresetRef = useRef(null);
 
@@ -7213,9 +7219,33 @@ function JarvisConsole() {
     }
   };
 
+  const handleImageAttachment = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Choose a PNG, JPEG, or WebP image.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Images for chat analysis must be smaller than 5 MB.');
+      return;
+    }
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Could not read that image.'));
+      reader.readAsDataURL(file);
+    }).catch((error) => {
+      toast.error(getApiErrorMessage(error, 'Could not read that image.'));
+      return null;
+    });
+    if (dataUrl) setImageAttachment({ name: file.name, dataUrl });
+  };
+
   const handleSend = async (nextMessage) => {
     const text = (nextMessage ?? draft).trim();
-    if (!text || sending || booting) {
+    if ((!text && !imageAttachment) || sending || booting) {
       return;
     }
 
@@ -7228,10 +7258,12 @@ function JarvisConsole() {
       id: `user-${Date.now()}`,
       role: 'user',
       content: text,
+      attachment: imageAttachment,
       timestamp: new Date().toISOString(),
     };
 
     setDraft('');
+    setImageAttachment(null);
     setSending(true);
     const assistantTurnId = `assistant-${Date.now()}-stream`;
     setMessages((current) => [
@@ -7293,6 +7325,7 @@ function JarvisConsole() {
         `/api/chat/sessions/${activeSessionId}/stream`,
         {
           message: text,
+          image_attachment: imageAttachment ? { name: imageAttachment.name, data_url: imageAttachment.dataUrl } : undefined,
           use_research: profile.liveResearchEnabled,
           persona_mode: profile.personaMode,
           response_mode: profile.responseMode,
@@ -8510,7 +8543,7 @@ function JarvisConsole() {
           <div>
             <h1>{profile.assistantName}</h1>
             <p>
-              {listening ? 'Listening…' : sending ? 'Thinking…' : `Model: ${activeProviderLabel}. Click a model chip to switch.`}
+              {listening ? 'Listening…' : sending ? 'Thinking…' : 'Your governed AI workspace'}
             </p>
           </div>
         </div>
@@ -8530,13 +8563,54 @@ function JarvisConsole() {
             onClick={() => setDenseCockpit(true)}
           >
             <FiLayers />
-            Full cockpit
+            Tools & workspace
           </button>
         </div>
       </section>
       )}
 
       <section className="jarvis-layout">
+        {!denseCockpit ? (
+          <aside className="jarvis-simple-sidebar page-panel">
+            <button
+              type="button"
+              className="jarvis-primary-button jarvis-new-chat-button"
+              onClick={() => createFreshSession(profile)}
+              disabled={booting || sending}
+            >
+              <FiPlus /> New chat
+            </button>
+            <div className="jarvis-simple-sidebar-head">
+              <span>Conversations</span>
+              <button type="button" onClick={refreshSessions} aria-label="Refresh conversations"><FiRefreshCw /></button>
+            </div>
+            <div className="jarvis-simple-session-list">
+              {recentSessions.length === 0 ? (
+                <p className="session-empty">Your new chats will appear here.</p>
+              ) : recentSessions.slice(0, 12).map((session) => (
+                <button
+                  key={session.session_id}
+                  type="button"
+                  className={`jarvis-simple-session ${session.session_id === sessionId ? 'active' : ''}`}
+                  onClick={() => handleLoadSession(session.session_id)}
+                >
+                  <strong>{session.current_goal || `Chat ${session.session_id.slice(0, 8)}`}</strong>
+                  <span>{formatRelativeTime(session.updated_at)}</span>
+                </button>
+              ))}
+            </div>
+            <div className="jarvis-simple-plugs">
+              <span>Plugs</span>
+              <Link to="/holo-rt4d">Spatial vision</Link>
+              <Link to="/model-library">Model library</Link>
+              <Link to="/adaptive-music">Beatbox & score</Link>
+            </div>
+            <div className="jarvis-simple-sidebar-footer">
+              <span><FiCpu /> {activeProviderLabel}</span>
+              <button type="button" onClick={() => setDenseCockpit(true)}><FiLayers /> Tools</button>
+            </div>
+          </aside>
+        ) : null}
         {denseCockpit ? (
         <aside className="jarvis-tool-panel" id="jarvis-tool-layer">
           <div className="jarvis-side-card page-panel tool-layer-card">
@@ -8695,6 +8769,13 @@ function JarvisConsole() {
             accept=".pdf,.txt,.md,text/plain,application/pdf"
             className="jarvis-hidden-input"
             onChange={handleFileIntake}
+          />
+          <input
+            ref={imageAttachmentRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="jarvis-hidden-input"
+            onChange={handleImageAttachment}
           />
 
           {denseCockpit ? (
@@ -8951,16 +9032,19 @@ function JarvisConsole() {
                 <span>Model</span>
                 <strong>{activeProviderLabel}</strong>
               </div>
-              <button
-                type="button"
-                className="jarvis-secondary-button"
-                onClick={() => refreshProviders()}
-                disabled={providersBusy}
-                aria-label="Refresh models"
-              >
-                <FiRefreshCw />
-                {providersBusy ? 'Refreshing…' : 'Refresh'}
-              </button>
+              <div className="jarvis-model-switcher-actions">
+                <Link to="/model-library" className="jarvis-model-library-link">Add models</Link>
+                <button
+                  type="button"
+                  className="jarvis-secondary-button"
+                  onClick={() => refreshProviders()}
+                  disabled={providersBusy}
+                  aria-label="Refresh models"
+                >
+                  <FiRefreshCw />
+                  {providersBusy ? 'Refreshing…' : 'Refresh'}
+                </button>
+              </div>
             </div>
             <div className="jarvis-model-switcher-row" role="group" aria-label="Switch model">
               {(denseCockpit ? availableProviders : selectableProviders).map((provider) => {
@@ -8981,6 +9065,13 @@ function JarvisConsole() {
           </div>
 
           <div className="jarvis-compose">
+            {imageAttachment ? (
+              <div className="jarvis-image-attachment">
+                <img src={imageAttachment.dataUrl} alt={imageAttachment.name} />
+                <span>{imageAttachment.name}</span>
+                <button type="button" onClick={() => setImageAttachment(null)}>Remove</button>
+              </div>
+            ) : null}
             <textarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -9210,6 +9301,24 @@ function JarvisConsole() {
                 )}
               </div>
               <div className="compose-button-cluster">
+                <button
+                  type="button"
+                  className="jarvis-secondary-button"
+                  onClick={() => imageAttachmentRef.current?.click()}
+                  disabled={sending || booting || conversationLane === 'documents'}
+                  title="Analyze an image with the active NVIDIA chat model"
+                >
+                  <FiImage /> Image
+                </button>
+                <button
+                  type="button"
+                  className="jarvis-secondary-button"
+                  onClick={() => fileIntakeRef.current?.click()}
+                  disabled={sending || booting || fileIntakeBusy}
+                  title="Add a PDF, text file, or Markdown document to Jarvis intake"
+                >
+                  <FiFolder /> {fileIntakeBusy ? 'Adding…' : 'File'}
+                </button>
                 <button
                   type="button"
                   className="jarvis-secondary-button"

@@ -43,8 +43,21 @@ def _resolve_api_key(spec: FrontierProviderSpec) -> str:
 
 
 def _nvidia_extra_body(model: str | None = None) -> dict[str, Any]:
-    """Optional Nemotron thinking kwargs; skip for non-Nemotron NIM models (e.g. Muse)."""
+    """Return model-specific NIM controls without exposing provider internals upstream."""
     model_id = str(model or "").strip().lower()
+    if "muse-glimmer" in model_id:
+        # Muse returns a separate reasoning trace that shares max_tokens with
+        # the visible answer.  Keep the trace short for the interactive
+        # Jarvis lane, while using the sampling settings NVIDIA recommends for
+        # Muse rather than the lower-temperature defaults used by other APIs.
+        effort = os.getenv("AAIS_NVIDIA_REASONING_EFFORT", "minimal").strip().lower()
+        if effort not in {"none", "minimal", "low", "medium", "high", "max"}:
+            effort = "minimal"
+        return {
+            "reasoning_effort": effort,
+            "temperature": 0.95,
+            "top_p": 1.0,
+        }
     if model_id and "nemotron" not in model_id:
         return {}
     if env_flag("AAIS_NVIDIA_ENABLE_THINKING", default=False):

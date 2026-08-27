@@ -18,6 +18,29 @@ class _FakeClient:
 
 
 class TestHttpChatProvider(unittest.TestCase):
+    def test_invoke_preserves_multimodal_content_parts(self):
+        client = _FakeClient(
+            {
+                "choices": [{"finish_reason": "stop", "message": {"content": "I see the image."}}],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+            }
+        )
+        provider = HttpChatProvider(
+            HttpChatProviderConfig(
+                provider_id="nvidia",
+                default_model="meta/muse-glimmer-30b",
+                endpoint="https://example.invalid/v1/chat/completions",
+                api_key="test-key",
+            ),
+            client=client,
+        )
+        content = [
+            {"type": "text", "text": "What is in this image?"},
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64,AA=="}},
+        ]
+        asyncio.run(provider.invoke([JarvisMessage(role="user", content=content)], max_tokens=64))
+        self.assertEqual(client.calls[0][0]["messages"][0]["content"], content)
+
     def test_invoke_maps_openai_response(self):
         client = _FakeClient(
             {

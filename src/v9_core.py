@@ -1,4 +1,4 @@
-"""Jarvis-native V9 Core engine adapted from the older Divine Core pipeline."""
+"""Jarvis-native V9 narrative engine adapted from an older internal pipeline."""
 
 from __future__ import annotations
 
@@ -35,9 +35,9 @@ DEFAULT_STYLE = {
 }
 
 COMBAT_HINTS = ("fight", "battle", "attack", "combat", "duel", "sword")
-V9_TRIGGER_RE = re.compile(r"\b(v9 core|divine core)\b", re.IGNORECASE)
+V9_TRIGGER_RE = re.compile(r"\b(v9 core|narrative studio|divine core)\b", re.IGNORECASE)
 V9_PREFIX_RE = re.compile(
-    r"^\s*(?:run|use|invoke|open|try)?\s*(?:the\s+)?(?:v9 core|divine core)\s*[:,-]?\s*",
+    r"^\s*(?:run|use|invoke|open|try)?\s*(?:the\s+)?(?:v9 core|narrative studio|divine core)\s*[:,-]?\s*",
     re.IGNORECASE,
 )
 

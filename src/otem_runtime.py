@@ -123,7 +123,7 @@ SPECIAL_TOOL_REGISTRY = (
     },
     {
         "id": "v9_core",
-        "label": "V9 Core",
+        "label": "Narrative Studio",
         "type": "runtime",
         "capabilities": [
             "creative scene drafting",

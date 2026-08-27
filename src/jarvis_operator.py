@@ -4861,15 +4861,15 @@ class JarvisOperator:
         )
 
     def _render_v9_core_response(self, result: dict) -> str:
-        """Render one concise human summary for a V9 Core run."""
+        """Render one concise human summary for a Narrative Studio run."""
         if result.get("status") == "failed":
-            return f"V9 Core could not run: {result.get('error', 'Unknown error')}"
+            return f"Narrative Studio could not run: {result.get('error', 'Unknown error')}"
         pipeline = " -> ".join(result.get("pipeline") or [])
         output = str(result.get("output") or "").strip()
         location = result.get("location") or "Unknown"
         if not output:
-            return f"V9 Core ran the pipeline at {location}, but no scene text was returned."
-        return f"V9 Core ran {pipeline} at {location}.\n\n{output}"
+            return f"Narrative Studio ran the pipeline at {location}, but no scene text was returned."
+        return f"Narrative Studio ran {pipeline} at {location}.\n\n{output}"
 
     def _render_v10_core_response(self, result: dict) -> str:
         """Render one concise human summary for a V10 Core run."""
