@@ -43,6 +43,7 @@ from src.patch_apply_engine import PatchApplyEngine
 from src.patch_execution_preview import PatchExecutionPreview
 from src.patch_review_store import PatchReviewStore
 from src.project_infi_law import ProjectInfiLaw
+from src.workspace_root import resolve_workspace_root
 from src.forge_repo_governance import (
     build_forge_contractor_payload,
     build_forge_eval_payload,
@@ -267,6 +268,14 @@ IGNORED_DIR_NAMES = {
     "build",
     "dist",
     "_archives",
+    # Container/host pseudo-fs — walking these hits /proc/*/map_files (EPERM).
+    "proc",
+    "sys",
+    "dev",
+    "map_files",
+    "run",
+    "boot",
+    "lost+found",
 }
 
 TEXT_EXTENSIONS = {
@@ -2730,13 +2739,11 @@ class WorkspaceTools:
 
     def _resolve_workspace_root(self):
         """Resolve the workspace root that Jarvis may inspect."""
-        if os.getenv(WORKSPACE_ROOT_ENV):
-            return Path(os.getenv(WORKSPACE_ROOT_ENV)).expanduser().resolve()
-
-        if self.workspace_root is not None:
-            return self.workspace_root.expanduser().resolve()
-
-        return Path(__file__).resolve().parents[2]
+        return resolve_workspace_root(
+            self.workspace_root,
+            env_var=WORKSPACE_ROOT_ENV,
+            module_file=Path(__file__),
+        )
 
     def _preferred_project_name(self):
         """Return the project folder that should rank highest in ambiguous searches."""
@@ -2765,7 +2772,11 @@ class WorkspaceTools:
         """Yield candidate files under the workspace root, skipping bulky/system dirs."""
         root = self._resolve_workspace_root()
 
-        for current_root, dirs, files in os.walk(root):
+        def _skip_unreadable(_error: OSError) -> None:
+            # Fail-open: container /proc/*/map_files raises EPERM; keep chat alive.
+            return None
+
+        for current_root, dirs, files in os.walk(root, onerror=_skip_unreadable):
             dirs[:] = [
                 directory
                 for directory in dirs
@@ -2779,21 +2790,28 @@ class WorkspaceTools:
 
     def _is_text_file(self, path: Path):
         """Check whether a file is safe and useful to preview/search as text."""
-        if not path.is_file():
+        try:
+            if not path.is_file():
+                return False
+
+            normalized = str(path).replace("/", "\\").lower()
+            if "\\training\\out\\" in normalized or "\\checkpoint-" in normalized:
+                return False
+            # Defense-in-depth if a walk somehow enters proc/sys/dev.
+            parts = {part.lower() for part in path.parts}
+            if parts & {"proc", "sys", "dev", "map_files"}:
+                return False
+
+            if path.stat().st_size > MAX_FILE_BYTES:
+                return False
+
+            suffix = path.suffix.lower()
+            if suffix in TEXT_EXTENSIONS:
+                return True
+
+            return path.name.lower().startswith("readme")
+        except OSError:
             return False
-
-        normalized = str(path).replace("/", "\\").lower()
-        if "\\training\\out\\" in normalized or "\\checkpoint-" in normalized:
-            return False
-
-        if path.stat().st_size > MAX_FILE_BYTES:
-            return False
-
-        suffix = path.suffix.lower()
-        if suffix in TEXT_EXTENSIONS:
-            return True
-
-        return path.name.lower().startswith("readme")
 
     def _read_text_file(self, path: Path, max_chars: int | None = MAX_FILE_CHARS):
         """Read a bounded text preview from disk."""
@@ -2951,7 +2969,10 @@ class WorkspaceTools:
                     kind = "path"
                     snippet = f"Exact file match in {relative_path}"
 
-            content = self._read_text_file(path, max_chars=None)
+            try:
+                content = self._read_text_file(path, max_chars=None)
+            except (OSError, ValueError):
+                continue
             lower_content = content.lower()
             content_score = _score_text_match(query_tokens, lower_content)
 
@@ -5167,21 +5188,25 @@ class JarvisOperator:
             return None
 
         preferred_project = self.workspace_tools._preferred_project_name()
-        search_result = self.workspace_tools.search(
-            query,
-            limit=result_limit,
-            project_name=preferred_project,
-            prefer_project=preferred_project,
-        )
-        results = search_result.get("results", [])
-        scoped_project = preferred_project if results else None
-        if not results:
+        try:
             search_result = self.workspace_tools.search(
                 query,
                 limit=result_limit,
+                project_name=preferred_project,
                 prefer_project=preferred_project,
             )
             results = search_result.get("results", [])
+            scoped_project = preferred_project if results else None
+            if not results:
+                search_result = self.workspace_tools.search(
+                    query,
+                    limit=result_limit,
+                    prefer_project=preferred_project,
+                )
+                results = search_result.get("results", [])
+        except OSError:
+            # Fail-open: blocked /proc map reads must not abort a Jarvis reply.
+            return None
 
         if not results:
             return None
@@ -5345,21 +5370,24 @@ class JarvisOperator:
             return None
 
         preferred_project = self.workspace_tools._preferred_project_name()
-        search_result = self.workspace_tools.search(
-            cleaned_query,
-            limit=result_limit,
-            project_name=preferred_project,
-            prefer_project=preferred_project,
-        )
-        results = search_result.get("results", [])
-        scoped_project = preferred_project if results else None
-        if not results:
+        try:
             search_result = self.workspace_tools.search(
                 cleaned_query,
                 limit=result_limit,
+                project_name=preferred_project,
                 prefer_project=preferred_project,
             )
             results = search_result.get("results", [])
+            scoped_project = preferred_project if results else None
+            if not results:
+                search_result = self.workspace_tools.search(
+                    cleaned_query,
+                    limit=result_limit,
+                    prefer_project=preferred_project,
+                )
+                results = search_result.get("results", [])
+        except OSError:
+            return None
 
         if not results:
             return None
@@ -6105,7 +6133,13 @@ class JarvisOperator:
 
         if lower.startswith("search workspace for "):
             query = cleaned[21:].strip()
-            search_result = self.workspace_tools.search(query, limit=6)
+            try:
+                search_result = self.workspace_tools.search(query, limit=6)
+            except OSError:
+                return {
+                    "response": "Workspace search is unavailable in this runtime (filesystem introspection blocked).",
+                    "tool_result": {"type": "workspace_search", "query": query, "results": []},
+                }
             lines = [
                 f"- {result['relative_path']}: {result['snippet']}"
                 for result in search_result["results"]
@@ -6122,7 +6156,13 @@ class JarvisOperator:
 
         if lower.startswith("find file "):
             query = cleaned[10:].strip()
-            search_result = self.workspace_tools.search(query, limit=6)
+            try:
+                search_result = self.workspace_tools.search(query, limit=6)
+            except OSError:
+                return {
+                    "response": "File search is unavailable in this runtime (filesystem introspection blocked).",
+                    "tool_result": {"type": "workspace_search", "query": query, "results": []},
+                }
             lines = [
                 f"- {result['relative_path']}: {result['snippet']}"
                 for result in search_result["results"]

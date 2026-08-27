@@ -66,6 +66,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     AAIS_RUNTIME_DIR=/app/.runtime/aais-data \
+    AAIS_WORKSPACE_ROOT=/app \
     PATH=/usr/local/bin:$PATH \
     PORT=8000
 
