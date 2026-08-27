@@ -62,21 +62,37 @@ JSON-RPC line protocol (same as Continuity Ledger MCP): `initialize` → `tools/
 
 ## How Jarvis / AAIS uses it
 
-Jarvis does **not** yet run a full MCP client for this server. Until that lands:
+### Env flags (Jarvis)
 
-1. **Local capability adapter** (same functions, no stdio):
+| Env | Default | Meaning |
+|-----|---------|---------|
+| `AAIS_JARVIS_TOOLS_MCP` | off | Set to `1` / `true` / `yes` / `on` so Jarvis prefers **stdio MCP** for operator tools |
+| `AAIS_TOOLS_MCP_CMD` | `python3 -m aais_tools_mcp` | Optional spawn command override (shell-split) |
+| `AAIS_TOOLS_MCP_TIMEOUT_SEC` | `30` | Stdio handshake / call timeout |
+| `AAIS_WORKSPACE_ROOT` | repo root via `src/workspace_root.py` | Sandbox root passed into the MCP child (never `/`) |
+| `AAIS_TOOLS_MCP_ALLOW_WRITES` | `0` | Server write gate (still requires `allow_write=true` per call) |
+
+When `AAIS_JARVIS_TOOLS_MCP` is enabled, Jarvis calls `src/aais_tools_mcp_client.py` (`AaisOperatorToolsStdioClient`). Spawn or protocol failures **fail-open** to the in-process adapter so chat never dies (same posture as the `/proc` walk guard).
+
+Selection lives in `src/aais_tools_mcp_adapter.py` → `invoke_aais_operator_tool(...)`. Tool turns that name `read_file`, `write_file`, `apply_patch`, `list_dir`, `search_code`, `run_tests`, `git_status`, or `git_diff` go through `JarvisOperator.handle_tool_request` → that helper (one API for both transports).
+
+1. **Local capability adapter** (default when MCP flag is off):
 
 ```python
-from aais_tools_mcp.capability_adapter import AaisOperatorToolsCapability
+from src.aais_tools_mcp_adapter import invoke_aais_operator_tool
 
-cap = AaisOperatorToolsCapability(workspace_root="/path/to/Project-Infinity")
-print(cap.snapshot())
-print(cap.invoke("read_file", {"path": "README.md"}))
+print(invoke_aais_operator_tool("read_file", {"path": "README.md"}))
 ```
 
-2. Repo wiring stub: `src/aais_tools_mcp_adapter.py` adds the service to `sys.path` and re-exports `AaisOperatorToolsCapability` for capability-bridge / operator plugs.
+2. **Stdio client** (when `AAIS_JARVIS_TOOLS_MCP=1`):
 
-3. Existing Jarvis workspace browsing (`WorkspaceTools` / capability workspace lane) remains the primary in-process path; this MCP is the **Cursor + future MCP-client** surface with shared sandbox policy intent.
+```python
+from src.aais_tools_mcp_client import invoke_aais_operator_tool_stdio
+
+print(invoke_aais_operator_tool_stdio("git_status", {}))
+```
+
+3. Existing Jarvis workspace browsing (`WorkspaceTools` / capability workspace lane) remains the primary **browse/search** path for natural-language chat. Structured coding/tool envelopes use the AAIS operator tool names above (MCP or adapter).
 
 ## Tests
 

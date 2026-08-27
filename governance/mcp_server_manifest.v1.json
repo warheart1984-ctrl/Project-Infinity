@@ -9,7 +9,13 @@
       "command": "python",
       "args": ["-m", "aais_tools_mcp"],
       "cwd": "services/aais-tools-mcp",
-      "env_keys": ["AAIS_WORKSPACE_ROOT", "AAIS_TOOLS_MCP_ALLOW_WRITES"],
+      "env_keys": [
+        "AAIS_WORKSPACE_ROOT",
+        "AAIS_TOOLS_MCP_ALLOW_WRITES",
+        "AAIS_JARVIS_TOOLS_MCP",
+        "AAIS_TOOLS_MCP_CMD",
+        "AAIS_TOOLS_MCP_TIMEOUT_SEC"
+      ],
       "tools": [
         "read_file",
         "write_file",
@@ -21,7 +27,7 @@
         "git_diff"
       ],
       "writes_default": false,
-      "notes": "Governed workspace R/W + allowlisted tests; see services/aais-tools-mcp/README.md"
+      "notes": "Governed workspace R/W + allowlisted tests; Jarvis prefers stdio when AAIS_JARVIS_TOOLS_MCP=1 (fail-open to local adapter). See services/aais-tools-mcp/README.md"
     }
   }
 }

@@ -3,12 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 from src.datetime_compat import UTC
 import hashlib
-import os
 from pathlib import Path
 from typing import Any
 
+from src.workspace_root import resolve_workspace_root
 
-WORKSPACE_ROOT_ENV = "AAIS_WORKSPACE_ROOT"
+
 DISALLOWED_AFTER_SNIPPET_MARKERS = (
     "review-first patch placeholder",
     "review first patch placeholder",
@@ -34,11 +34,10 @@ class PatchApplyEngine:
         self.workspace_root = Path(workspace_root) if workspace_root else None
 
     def _resolve_workspace_root(self) -> Path:
-        if os.getenv(WORKSPACE_ROOT_ENV):
-            return Path(os.getenv(WORKSPACE_ROOT_ENV)).expanduser().resolve()
-        if self.workspace_root is not None:
-            return self.workspace_root.expanduser().resolve()
-        return Path(__file__).resolve().parents[2]
+        return resolve_workspace_root(
+            self.workspace_root,
+            module_file=Path(__file__),
+        )
 
     def _resolve_target_path(self, relative_path: str) -> tuple[Path, str]:
         root = self._resolve_workspace_root()

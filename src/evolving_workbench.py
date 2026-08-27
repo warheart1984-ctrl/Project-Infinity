@@ -22,6 +22,8 @@ except ModuleNotFoundError:  # Python < 3.11
 from typing import Any
 from uuid import uuid4
 
+from src.workspace_root import resolve_workspace_root
+
 PRIMARY_PROJECT_ENV = "AAIS_PRIMARY_PROJECT"
 APPROVAL_AUDIT_FILENAME = "evolving-approval-audit.json"
 MAX_SYMBOL_RESULTS = 40
@@ -39,6 +41,13 @@ IGNORED_DIR_NAMES = {
     "build",
     "dist",
     "_archives",
+    "proc",
+    "sys",
+    "dev",
+    "map_files",
+    "run",
+    "boot",
+    "lost+found",
 }
 
 CODE_EXTENSIONS = {
@@ -203,12 +212,10 @@ class EvolvingWorkspaceIntel:
         self.workspace_root = Path(workspace_root) if workspace_root else None
 
     def _resolve_workspace_root(self) -> Path:
-        configured = os.getenv("AAIS_WORKSPACE_ROOT")
-        if configured:
-            return Path(configured).expanduser().resolve()
-        if self.workspace_root is not None:
-            return self.workspace_root.expanduser().resolve()
-        return Path(__file__).resolve().parents[2]
+        return resolve_workspace_root(
+            self.workspace_root,
+            module_file=Path(__file__),
+        )
 
     def _preferred_project_name(self) -> str:
         configured = str(os.getenv(PRIMARY_PROJECT_ENV, "")).strip()
@@ -225,7 +232,11 @@ class EvolvingWorkspaceIntel:
     def _iter_visible_files(self) -> list[str]:
         root = self._resolve_workspace_root()
         visible: list[str] = []
-        for current_root, dirs, files in os.walk(root):
+
+        def _skip_unreadable(_error: OSError) -> None:
+            return None
+
+        for current_root, dirs, files in os.walk(root, onerror=_skip_unreadable):
             dirs[:] = [
                 directory
                 for directory in dirs
@@ -233,7 +244,10 @@ class EvolvingWorkspaceIntel:
             ]
             for filename in files:
                 path = Path(current_root) / filename
-                relative = _normalize_posix_path(path.relative_to(root))
+                try:
+                    relative = _normalize_posix_path(path.relative_to(root))
+                except (OSError, ValueError):
+                    continue
                 if relative:
                     visible.append(relative)
         return sorted(visible)

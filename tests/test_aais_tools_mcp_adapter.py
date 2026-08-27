@@ -9,6 +9,9 @@ from pathlib import Path
 
 class AaisToolsMcpAdapterTests(unittest.TestCase):
     def test_invoke_read_via_src_shim(self) -> None:
+        import os
+        from unittest.mock import patch
+
         from src.aais_tools_mcp_adapter import get_aais_operator_tools, invoke_aais_operator_tool
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -17,7 +20,10 @@ class AaisToolsMcpAdapterTests(unittest.TestCase):
             sample.write_text("adapter-ok\n", encoding="utf-8")
             cap = get_aais_operator_tools(root)
             self.assertIn("read_file", cap.list_tools())
-            result = invoke_aais_operator_tool("read_file", {"path": "note.txt"}, workspace_root=root)
+            with patch.dict(os.environ, {"AAIS_JARVIS_TOOLS_MCP": "0"}, clear=False):
+                result = invoke_aais_operator_tool(
+                    "read_file", {"path": "note.txt"}, workspace_root=root
+                )
             self.assertEqual(result["transport"], "local_adapter")
             self.assertTrue(result["result"]["ok"])
             self.assertIn("adapter-ok", result["result"]["content"])
