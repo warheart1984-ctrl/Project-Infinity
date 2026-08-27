@@ -3,6 +3,8 @@ import {
   inferTaskHints,
   mapOperatorAskToTaskBusPayload,
   parseSlashCommand,
+  parseVisualIntelligenceHandoff,
+  VISUAL_CREATION_COMPLETE_TOKEN,
 } from './sovereignDispatch';
 import {
   buildInlineCards,
@@ -36,6 +38,25 @@ describe('sovereignDispatch', () => {
 
   it('infers spreadsheet tag', () => {
     expect(inferTaskHints('open an excel workbook session').tags).toContain('spreadsheet');
+  });
+
+  it('parses visual intelligence handoff and strips token from payload', () => {
+    const body = 'A luminous spiral mandala';
+    const raw = `${body} ${VISUAL_CREATION_COMPLETE_TOKEN}`;
+    const handoff = parseVisualIntelligenceHandoff(raw);
+    expect(handoff.matched).toBe(true);
+    expect(handoff.body).toBe(body);
+    expect(handoff.body).not.toContain('perfection');
+
+    const payload = mapOperatorAskToTaskBusPayload(raw, { forceDemo: true });
+    expect(payload.text).toBe(body);
+    expect(payload.intent.type).toBe('picture');
+    expect(payload.intent.tags).toEqual(
+      expect.arrayContaining(['visual_intelligence', 'authorized']),
+    );
+    expect(payload.pictures?.[0]?.action).toBe('make_picture');
+    expect(payload.pictures?.[0]?.target).toBe(body);
+    expect(JSON.stringify(payload)).not.toContain('perfection no upgrade');
   });
 });
 

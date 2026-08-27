@@ -6,6 +6,7 @@
 import { randomUUID } from "node:crypto";
 import { classifyIntent } from "./intent_classifier.js";
 import { classifyIntentWithEmbeddings } from "./embeddings_classifier.js";
+import { parseVisualIntelligenceHandoff } from "./visual_intelligence_handoff.js";
 import type {
   Intent,
   ParsedPicture,
@@ -51,9 +52,17 @@ export function normalizeRequest(input: unknown): TaskSkillsRequest {
     );
   }
 
-  const classified = classifyIntent(rawText);
+  const handoff = parseVisualIntelligenceHandoff(rawText);
+  const effectiveText = handoff.matched ? handoff.body : rawText.trim();
+  const classified = handoff.matched
+    ? {
+        type: "picture" as const,
+        confidence: 0.95,
+        tags: handoff.intent!.tags,
+      }
+    : classifyIntent(effectiveText);
   const intent: Intent = {
-    raw: rawText.trim(),
+    raw: effectiveText,
     type: preType ?? classified.type,
     confidence: preConf ?? classified.confidence,
     tags: preTags ?? classified.tags,
@@ -85,7 +94,7 @@ export function normalizeRequest(input: unknown): TaskSkillsRequest {
     } satisfies ParsedSkill;
   });
 
-  const pictures = (pick<unknown[]>(rawIn, "pictures") ?? []).map((t, idx) => {
+  let pictures: ParsedPicture[] = (pick<unknown[]>(rawIn, "pictures") ?? []).map((t, idx) => {
     const row = asRecord(t);
     return {
       id: String(pick(row, "id") ?? `pic-${idx + 1}`),
@@ -95,6 +104,10 @@ export function normalizeRequest(input: unknown): TaskSkillsRequest {
       params: asRecord(pick(row, "params") ?? {}),
     } satisfies ParsedPicture;
   });
+
+  if (handoff.matched && handoff.pictures?.length) {
+    pictures = handoff.pictures;
+  }
 
   // Auto-parse when arrays empty
   if (tasks.length === 0 && (intent.type === "task" || intent.type === "mixed")) {
@@ -169,6 +182,9 @@ export async function normalizeRequestAsync(
   input: unknown,
 ): Promise<TaskSkillsRequest & { embeddingMeta?: Record<string, unknown> }> {
   const base = normalizeRequest(input);
+  if ((base.intent.tags ?? []).includes("visual_intelligence")) {
+    return base;
+  }
   // If caller already set type+tags explicitly, keep them
   const rawIn = asRecord(input ?? {});
   const intentIn = rawIn.intent;

@@ -9,6 +9,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from src.constitutional_task_bus.visual_intelligence_handoff import (
+    VISUAL_CREATION_COMPLETE_TOKEN,  # noqa: F401 — registered completion phrase
+    parse_visual_intelligence_handoff,
+)
+
 
 _TASK_PATTERNS = (
     r"\bplan\b",
@@ -66,6 +71,21 @@ class TaskBusIntentParser:
     """Classify operator text into task | skill | workflow | picture | mixed."""
 
     def classify(self, text: str, *, hints: dict[str, Any] | None = None) -> dict[str, Any]:
+        handoff = parse_visual_intelligence_handoff(text)
+        if handoff.get("matched"):
+            body = str(handoff.get("body") or "").strip()
+            return {
+                "kind": "picture",
+                "text": body,
+                "hits": {"picture": True, "visual_intelligence": True},
+                "requested_lanes": ["picture_generation"],
+                "parser": "VisualIntelligenceHandoffAdapter",
+                "forced": True,
+                "tags": ["visual_intelligence", "authorized"],
+                "pictures": list(handoff.get("pictures") or []),
+                "handoff": True,
+            }
+
         raw = " ".join(str(text or "").split()).strip()
         hints = dict(hints or {})
         forced_lanes = [
