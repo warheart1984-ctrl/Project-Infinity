@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "aais-tools": {
+      "command": "python",
+      "args": ["-m", "aais_tools_mcp"],
+      "cwd": "${workspaceFolder}/services/aais-tools-mcp",
+      "env": {
+        "AAIS_WORKSPACE_ROOT": "${workspaceFolder}",
+        "AAIS_TOOLS_MCP_ALLOW_WRITES": "0"
+      }
+    },
+    "jarvis-continuity-ledger": {
+      "command": "python",
+      "args": ["-m", "mcp.server"],
+      "cwd": "${workspaceFolder}/services/jarvis-memoryboard",
+      "env": {
+        "JARVIS_MEMORYBOARD_URL": "http://127.0.0.1:8001"
+      }
+    }
+  }
+}
