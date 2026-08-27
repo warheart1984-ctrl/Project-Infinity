@@ -51,8 +51,8 @@ docker compose -f frontend/docker-compose.yml up --build
 
 ## Render Blueprint
 
-1. Push branch → Render **New → Blueprint** → `render.yaml`.
-   - Note: `pserv` (private services) cannot use `healthCheckPath` — only `web` services may.
+1. Point the Blueprint at **`main`** (repo root must contain `render.yaml`). A missing-file sync error usually means the linked Git branch was deleted or does not have that file — fix the branch in the Render Dashboard, then **Manual Sync**.
+   - Note: `pserv` / `worker` / `keyvalue` cannot use `healthCheckPath` — only `web` services may.
 2. Deploy **aais-api**; note `https://…onrender.com`.
 3. Configure **aais-frontend** (static Blueprint Option B; health via CDN):
    - `VITE_API_BASE_URL=https://<aais-api-host>` (required on Render — no `/api` proxy)
